@@ -2,6 +2,7 @@
 import { HardhatNetworkForkingUserConfig, HardhatUserConfig } from 'hardhat/types';
 import {
   eAvalancheNetwork,
+  eArbitrumNetwork,
   eEthereumNetwork,
   ePolygonNetwork,
   eXDaiNetwork,
@@ -46,6 +47,7 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eEthereumNetwork.coverage]: 'http://localhost:8555',
   [eEthereumNetwork.hardhat]: 'http://localhost:8545',
   [eEthereumNetwork.buidlerevm]: 'http://localhost:8545',
+  [eEthereumNetwork.localhost]: 'http://localhost:8545',
   [eEthereumNetwork.tenderly]: `https://rpc.tenderly.co/fork/`,
   [ePolygonNetwork.mumbai]: 'https://rpc-mumbai.maticvigil.com',
   [ePolygonNetwork.matic]:
@@ -56,6 +58,12 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eAvalancheNetwork.avalanche]: 'https://api.avax.network/ext/bc/C/rpc',
   [eAvalancheNetwork.fuji]: 'https://api.avax-test.network/ext/bc/C/rpc',
   [eEthereumNetwork.goerli]: `https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+  [eArbitrumNetwork.arbitrum]: ALCHEMY_KEY
+    ? `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`
+    : 'https://arb1.arbitrum.io/rpc',
+  [eArbitrumNetwork.arbitrumSepolia]: ALCHEMY_KEY
+    ? `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}`
+    : 'https://sepolia-rollup.arbitrum.io/rpc',
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
@@ -65,6 +73,7 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [eEthereumNetwork.coverage]: 65 * GWEI,
   [eEthereumNetwork.hardhat]: 65 * GWEI,
   [eEthereumNetwork.buidlerevm]: 65 * GWEI,
+  [eEthereumNetwork.localhost]: 65 * GWEI,
   [eEthereumNetwork.tenderly]: 1 * GWEI,
   [ePolygonNetwork.mumbai]: 35 * GWEI,
   [ePolygonNetwork.matic]: 35 * GWEI,
@@ -72,6 +81,8 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [eAvalancheNetwork.avalanche]: 225 * GWEI,
   [eAvalancheNetwork.fuji]: 85 * GWEI,
   [eEthereumNetwork.goerli]: 2 * GWEI,
+  [eArbitrumNetwork.arbitrum]: 0.1 * GWEI,
+  [eArbitrumNetwork.arbitrumSepolia]: 0.1 * GWEI,
 };
 
 export const BLOCK_TO_FORK: iParamsPerNetwork<number | undefined> = {
@@ -81,6 +92,7 @@ export const BLOCK_TO_FORK: iParamsPerNetwork<number | undefined> = {
   [eEthereumNetwork.coverage]: undefined,
   [eEthereumNetwork.hardhat]: undefined,
   [eEthereumNetwork.buidlerevm]: undefined,
+  [eEthereumNetwork.localhost]: undefined,
   [eEthereumNetwork.tenderly]: undefined,
   [ePolygonNetwork.mumbai]: undefined,
   [ePolygonNetwork.matic]: undefined,
@@ -88,4 +100,6 @@ export const BLOCK_TO_FORK: iParamsPerNetwork<number | undefined> = {
   [eAvalancheNetwork.avalanche]: undefined,
   [eAvalancheNetwork.fuji]: undefined,
   [eEthereumNetwork.goerli]: undefined,
+  [eArbitrumNetwork.arbitrum]: undefined,
+  [eArbitrumNetwork.arbitrumSepolia]: undefined,
 };

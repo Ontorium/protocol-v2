@@ -4,7 +4,12 @@ export interface SymbolMap<T> {
   [symbol: string]: T;
 }
 
-export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork;
+export type eNetwork =
+  | eEthereumNetwork
+  | ePolygonNetwork
+  | eXDaiNetwork
+  | eAvalancheNetwork
+  | eArbitrumNetwork;
 
 export enum eEthereumNetwork {
   buidlerevm = 'buidlerevm',
@@ -13,6 +18,7 @@ export enum eEthereumNetwork {
   main = 'main',
   coverage = 'coverage',
   hardhat = 'hardhat',
+  localhost = 'localhost',
 
   tenderly = 'tenderly',
   goerli = 'goerli',
@@ -30,6 +36,11 @@ export enum eXDaiNetwork {
 export enum eAvalancheNetwork {
   avalanche = 'avalanche',
   fuji = 'fuji',
+}
+
+export enum eArbitrumNetwork {
+  arbitrum = 'arbitrum',
+  arbitrumSepolia = 'arbitrumSepolia',
 }
 
 export enum EthereumNetworkNames {
@@ -216,6 +227,7 @@ export interface iAssetCommon<T> {
   [key: string]: T;
 }
 export interface iAssetBase<T> {
+  AGT: T;
   WETH: T;
   DAI: T;
   TUSD: T;
@@ -265,6 +277,7 @@ export type iAssetsWithoutUSD<T> = Omit<iAssetBase<T>, 'USD'>;
 
 export type iAavePoolAssets<T> = Pick<
   iAssetsWithoutUSD<T>,
+  | 'AGT'
   | 'DAI'
   | 'TUSD'
   | 'USDC'
@@ -290,6 +303,7 @@ export type iAavePoolAssets<T> = Pick<
 
 export type iLpPoolAssets<T> = Pick<
   iAssetsWithoutUSD<T>,
+  | 'AGT'
   | 'DAI'
   | 'USDC'
   | 'USDT'
@@ -328,6 +342,8 @@ export type iAvalanchePoolAssets<T> = Pick<
   'WETH' | 'DAI' | 'USDT' | 'AAVE' | 'WBTC' | 'WAVAX' | 'USDC'
 >;
 
+export type iCustomPoolAssets<T> = Pick<iAssetsWithoutUSD<T>, 'AGT' | 'USDC' | 'USDT'>;
+
 export type iMultiPoolsAssets<T> = iAssetCommon<T> | iAavePoolAssets<T>;
 
 export type iAavePoolTokens<T> = Omit<iAavePoolAssets<T>, 'ETH'>;
@@ -335,6 +351,7 @@ export type iAavePoolTokens<T> = Omit<iAavePoolAssets<T>, 'ETH'>;
 export type iAssetAggregatorBase<T> = iAssetsWithoutETH<T>;
 
 export enum TokenContractId {
+  AGT = 'AGT',
   DAI = 'DAI',
   AAVE = 'AAVE',
   TUSD = 'TUSD',
@@ -419,7 +436,8 @@ export type iParamsPerNetwork<T> =
   | iEthereumParamsPerNetwork<T>
   | iPolygonParamsPerNetwork<T>
   | iXDaiParamsPerNetwork<T>
-  | iAvalancheParamsPerNetwork<T>;
+  | iAvalancheParamsPerNetwork<T>
+  | iArbitrumParamsPerNetwork<T>;
 
 export interface iParamsPerNetworkAll<T>
   extends iEthereumParamsPerNetwork<T>,
@@ -433,6 +451,7 @@ export interface iEthereumParamsPerNetwork<T> {
   [eEthereumNetwork.ropsten]: T;
   [eEthereumNetwork.main]: T;
   [eEthereumNetwork.hardhat]: T;
+  [eEthereumNetwork.localhost]: T;
   [eEthereumNetwork.tenderly]: T;
   [eEthereumNetwork.goerli]: T;
 }
@@ -449,6 +468,11 @@ export interface iXDaiParamsPerNetwork<T> {
 export interface iAvalancheParamsPerNetwork<T> {
   [eAvalancheNetwork.avalanche]: T;
   [eAvalancheNetwork.fuji]: T;
+}
+
+export interface iArbitrumParamsPerNetwork<T> {
+  [eArbitrumNetwork.arbitrum]: T;
+  [eArbitrumNetwork.arbitrumSepolia]: T;
 }
 
 export interface iParamsPerPool<T> {
@@ -553,6 +577,10 @@ export interface IXDAIConfiguration extends ICommonConfiguration {
 
 export interface IAvalancheConfiguration extends ICommonConfiguration {
   ReservesConfig: iAvalanchePoolAssets<IReserveParams>;
+}
+
+export interface ICustomConfiguration extends ICommonConfiguration {
+  ReservesConfig: iCustomPoolAssets<IReserveParams>;
 }
 
 export interface ITokenAddress {
