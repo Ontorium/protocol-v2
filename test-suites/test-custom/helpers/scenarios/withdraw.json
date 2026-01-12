@@ -1,0 +1,375 @@
+{
+  "title": "LendingPool: Withdraw",
+  "description": "Test cases for withdraw function with AGT, USDC, USDT.",
+  "stories": [
+    {
+      "description": "User 0 Deposits 1000 AGT in an empty reserve",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws half of the deposited AGT",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "AGT",
+            "amount": "500",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws remaining half of the deposited AGT",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "AGT",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 Deposits 1000 USDC in an empty reserve",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws half of the deposited USDC",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws remaining half of the deposited USDC",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 Deposits 1000 USDT in an empty reserve",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws half of the deposited USDT",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDT",
+            "amount": "500",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws remaining half of the deposited USDT",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDT",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "Users 0 and 1 Deposit 1000 USDC, both withdraw",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 1000 USDT and 100 AGT, borrows 500 USDC at variable. User 1 tries to withdraw all USDT (fails due to HF)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "user": "1",
+            "borrowRateMode": "variable"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDT",
+            "amount": "-1",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Transfer cannot exceed the collateral balance"
+        }
+      ]
+    },
+    {
+      "description": "User 1 tries to withdraw a small amount of AGT that keeps HF > 1",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "AGT",
+            "amount": "10",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    }
+  ]
+}

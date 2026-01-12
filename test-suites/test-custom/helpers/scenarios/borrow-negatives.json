@@ -1,0 +1,346 @@
+{
+  "title": "LendingPool: Borrow negatives (reverts)",
+  "description": "Test cases for borrow failures including stable borrow (disabled in custom market).",
+  "stories": [
+    {
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 AGT as collateral and tries to borrow 500 USDC with rate mode NONE (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "borrowRateMode": "none",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Invalid interest rate mode selected"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 AGT as collateral and tries to borrow 500 USDC with stable rate (revert expected - stable disabled)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "borrowRateMode": "stable",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Stable borrowing not enabled"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 AGT, user 1 deposits 1000 USDT as collateral and tries to borrow 10 AGT with stable rate (revert expected - stable disabled)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "AGT",
+            "amount": "10",
+            "borrowRateMode": "stable",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Stable borrowing not enabled"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDT, user 1 deposits 1000 USDC as collateral and tries to borrow 500 USDT with stable rate (revert expected - stable disabled)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDT",
+            "amount": "500",
+            "borrowRateMode": "stable",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Stable borrowing not enabled"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 AGT as collateral and tries to borrow with an invalid rate mode (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "borrowRateMode": "invalid",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "Invalid interest rate mode selected"
+        }
+      ]
+    }
+  ]
+}
