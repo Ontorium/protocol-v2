@@ -16,7 +16,6 @@ import {
   getAaveProtocolDataProvider,
   getLendingPoolAddressesProvider,
 } from '../../helpers/contracts-getters';
-import { chainlinkAggregatorProxy, chainlinkEthUsdAggregatorProxy } from '../../helpers/constants';
 
 task('full:initialize-lending-pool', 'Initialize lending pool configuration.')
   .addFlag('verify', 'Verify contracts at Etherscan')
@@ -104,9 +103,16 @@ task('full:initialize-lending-pool', 'Initialize lending pool configuration.')
 
       let gateWay = getParamPerNetwork(WethGateway, network);
       if (!notFalsyOrZeroAddress(gateWay)) {
-        gateWay = (await getWETHGateway()).address;
+        // Try to get deployed WETHGateway, skip if not available (e.g., Custom market)
+        try {
+          gateWay = (await getWETHGateway()).address;
+          await authorizeWETHGateway(gateWay, lendingPoolAddress);
+        } catch (e) {
+          console.log('\tWETHGateway not deployed, skipping authorization');
+        }
+      } else {
+        await authorizeWETHGateway(gateWay, lendingPoolAddress);
       }
-      await authorizeWETHGateway(gateWay, lendingPoolAddress);
     } catch (err) {
       console.error(err);
       exit(1);
