@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { oneEther, oneRay, RAY, ZERO_ADDRESS } from '../../helpers/constants';
-import { ICommonConfiguration, eEthereumNetwork } from '../../helpers/types';
+import { ICommonConfiguration, eEthereumNetwork, eArbitrumNetwork } from '../../helpers/types';
 
 // ----------------
 // PROTOCOL GLOBAL PARAMS
@@ -65,6 +65,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: undefined,
     [eEthereumNetwork.tenderly]: undefined,
     [eEthereumNetwork.goerli]: undefined,
+    [eArbitrumNetwork.arbitrumSepolia]: undefined,
+    [eArbitrumNetwork.arbitrum]: undefined,
   },
   PoolAdminIndex: 0,
   EmergencyAdminIndex: 0,
@@ -78,6 +80,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: undefined,
     [eEthereumNetwork.tenderly]: undefined,
     [eEthereumNetwork.goerli]: undefined,
+    [eArbitrumNetwork.arbitrumSepolia]: undefined,
+    [eArbitrumNetwork.arbitrum]: undefined,
   },
   ProviderRegistry: {
     [eEthereumNetwork.kovan]: '',
@@ -89,6 +93,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.localhost]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   ProviderRegistryOwner: {
     [eEthereumNetwork.kovan]: '',
@@ -100,6 +106,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.localhost]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   LendingRateOracle: {
     [eEthereumNetwork.coverage]: '',
@@ -111,6 +119,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   LendingPoolCollateralManager: {
     [eEthereumNetwork.coverage]: '',
@@ -122,6 +132,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   LendingPoolConfigurator: {
     [eEthereumNetwork.coverage]: '',
@@ -133,6 +145,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   LendingPool: {
     [eEthereumNetwork.coverage]: '',
@@ -144,6 +158,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   WethGateway: {
     [eEthereumNetwork.coverage]: '',
@@ -155,6 +171,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   TokenDistributor: {
     [eEthereumNetwork.coverage]: '',
@@ -166,6 +184,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   AaveOracle: {
     [eEthereumNetwork.coverage]: '',
@@ -177,6 +197,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   FallbackOracle: {
     [eEthereumNetwork.coverage]: '',
@@ -188,6 +210,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   ChainlinkAggregator: {
     [eEthereumNetwork.coverage]: {},
@@ -199,6 +223,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: {},
     [eEthereumNetwork.tenderly]: {},
     [eEthereumNetwork.goerli]: {},
+    [eArbitrumNetwork.arbitrumSepolia]: {},
+    [eArbitrumNetwork.arbitrum]: {},
   },
   ReserveAssets: {
     [eEthereumNetwork.coverage]: {},
@@ -210,6 +236,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.ropsten]: {},
     [eEthereumNetwork.tenderly]: {},
     [eEthereumNetwork.goerli]: {},
+    [eArbitrumNetwork.arbitrumSepolia]: {},
+    [eArbitrumNetwork.arbitrum]: {},
   },
   ReservesConfig: {},
   ATokenDomainSeparator: {
@@ -226,6 +254,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrum]: '',
   },
   WETH: {
     [eEthereumNetwork.coverage]: '',
@@ -237,6 +267,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     [eEthereumNetwork.tenderly]: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73', // WETH on Arbitrum Sepolia
+    [eArbitrumNetwork.arbitrum]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum One
   },
   WrappedNativeToken: {
     [eEthereumNetwork.coverage]: '',
@@ -248,6 +280,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     [eEthereumNetwork.tenderly]: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73', // WETH on Arbitrum Sepolia
+    [eArbitrumNetwork.arbitrum]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum One
   },
   ReserveFactorTreasuryAddress: {
     [eEthereumNetwork.coverage]: '0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c',
@@ -259,6 +293,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '0x0eD039d012B6c241e1636af8A0d2B6eC8c972b11', // Deployer address as treasury
+    [eArbitrumNetwork.arbitrum]: '',
   },
   IncentivesController: {
     [eEthereumNetwork.coverage]: ZERO_ADDRESS,
@@ -270,5 +306,7 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: ZERO_ADDRESS,
     [eEthereumNetwork.tenderly]: ZERO_ADDRESS,
     [eEthereumNetwork.goerli]: ZERO_ADDRESS,
+    [eArbitrumNetwork.arbitrumSepolia]: ZERO_ADDRESS,
+    [eArbitrumNetwork.arbitrum]: ZERO_ADDRESS,
   },
 };
