@@ -6,11 +6,13 @@ import { parseEther, parseUnits } from 'ethers/lib/utils';
 import { BigNumber } from 'bignumber.js';
 import { MockFlashLoanReceiver } from '../../types/MockFlashLoanReceiver';
 import { getMockFlashLoanReceiver } from '../../helpers/contracts-getters';
+import { mintTokens, getEmergencyAdminSigner, stopImpersonatingEmergencyAdmin, setAggregatorPrice } from './helpers/mint-tokens';
+import { DRE, waitForTx } from '../../helpers/misc-utils';
 
 const { expect } = require('chai');
 
 makeSuite('Pausable Pool', (testEnv: TestEnv) => {
-  let _mockFlashLoanReceiver = {} as MockFlashLoanReceiver;
+  let _mockFlashLoanReceiver: MockFlashLoanReceiver | null = null;
 
   const {
     LP_IS_PAUSED,
@@ -19,15 +21,25 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   } = ProtocolErrors;
 
   before(async () => {
-    _mockFlashLoanReceiver = await getMockFlashLoanReceiver();
+    if (process.env.USE_DEPLOYED) {
+      const { addressesProvider } = testEnv;
+      // @ts-ignore - DRE.ethers exists at runtime via hardhat-ethers plugin
+      const factory = await DRE.ethers.getContractFactory('MockFlashLoanPrivateReceiver');
+      const deployed = await factory.deploy(addressesProvider.address);
+      await deployed.deployed();
+      _mockFlashLoanReceiver = deployed as unknown as MockFlashLoanReceiver;
+      console.log('MockFlashLoanPrivateReceiver deployed at:', deployed.address);
+    } else {
+      _mockFlashLoanReceiver = await getMockFlashLoanReceiver();
+    }
   });
 
   it('User 0 deposits 1000 USDC. Configurator pauses pool. Transfers to user 1 reverts. Configurator unpauses the network and next transfer succeeds', async () => {
-    const { users, pool, usdc, aUSDC, configurator } = testEnv;
+    const { users, pool, usdc, aUSDC, configurator, addressesProvider } = testEnv;
 
     const amountUSDCtoDeposit = await convertToCurrencyDecimals(usdc.address, '1000');
 
-    await usdc.connect(users[0].signer).mint(amountUSDCtoDeposit);
+    await mintTokens(usdc, users[0].address, amountUSDCtoDeposit, users[0].signer);
 
     // user 0 deposits 1000 USDC
     await usdc.connect(users[0].signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -38,9 +50,10 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     const user0Balance = await aUSDC.balanceOf(users[0].address);
     const user1Balance = await aUSDC.balanceOf(users[1].address);
 
-    // Configurator pauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
-
+    // Configurator pauses the pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true)
+    
     // User 0 tries the transfer to User 1
     await expect(
       aUSDC.connect(users[0].signer).transfer(users[1].address, amountUSDCtoDeposit)
@@ -59,7 +72,8 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     );
 
     // Configurator unpauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
 
     // User 0 succeeds transfer to User 1
     await aUSDC.connect(users[0].signer).transfer(users[1].address, amountUSDCtoDeposit);
@@ -78,31 +92,33 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   });
 
   it('Deposit', async () => {
-    const { users, pool, usdc, aUSDC, configurator } = testEnv;
+    const { users, pool, usdc, aUSDC, configurator, addressesProvider } = testEnv;
 
     const amountUSDCtoDeposit = await convertToCurrencyDecimals(usdc.address, '1000');
 
-    await usdc.connect(users[0].signer).mint(amountUSDCtoDeposit);
+    await mintTokens(usdc, users[0].address, amountUSDCtoDeposit, users[0].signer);
 
     // user 0 deposits 1000 USDC
     await usdc.connect(users[0].signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
-    // Configurator pauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Configurator pauses the pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
     await expect(
       pool.connect(users[0].signer).deposit(usdc.address, amountUSDCtoDeposit, users[0].address, '0')
     ).to.revertedWith(LP_IS_PAUSED);
 
     // Configurator unpauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('Withdraw', async () => {
-    const { users, pool, usdc, aUSDC, configurator } = testEnv;
+    const { users, pool, usdc, aUSDC, configurator, addressesProvider } = testEnv;
 
     const amountUSDCtoDeposit = await convertToCurrencyDecimals(usdc.address, '1000');
 
-    await usdc.connect(users[0].signer).mint(amountUSDCtoDeposit);
+    await mintTokens(usdc, users[0].address, amountUSDCtoDeposit, users[0].signer);
 
     // user 0 deposits 1000 USDC
     await usdc.connect(users[0].signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -110,8 +126,9 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
       .connect(users[0].signer)
       .deposit(usdc.address, amountUSDCtoDeposit, users[0].address, '0');
 
-    // Configurator pauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Configurator pauses the pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     // user tries to burn
     await expect(
@@ -119,15 +136,17 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     ).to.revertedWith(LP_IS_PAUSED);
 
     // Configurator unpauses the pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('Borrow', async () => {
-    const { pool, usdc, users, configurator } = testEnv;
+    const { pool, usdc, users, configurator, addressesProvider } = testEnv;
 
     const user = users[1];
-    // Pause the pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause the pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     // Try to execute liquidation
     await expect(
@@ -135,15 +154,17 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause the pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('Repay', async () => {
-    const { pool, usdc, users, configurator } = testEnv;
+    const { pool, usdc, users, configurator, addressesProvider } = testEnv;
 
     const user = users[1];
-    // Pause the pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause the pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     // Try to execute liquidation
     await expect(pool.connect(user.signer).repay(usdc.address, '1', '2', user.address)).revertedWith(
@@ -151,11 +172,16 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     );
 
     // Unpause the pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('Flash loan', async () => {
-    const { usdc, pool, agt, users, configurator } = testEnv;
+    const { usdc, pool, agt, users, configurator, addressesProvider } = testEnv;
+
+    if (!_mockFlashLoanReceiver) {
+      throw new Error('MockFlashLoanReceiver not initialized');
+    }
 
     const caller = users[3];
 
@@ -163,8 +189,9 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-    // Pause pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     await expect(
       pool
@@ -181,18 +208,17 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('Liquidation call', async () => {
-    const { users, pool, usdc, oracle, agt, configurator, helpersContract } = testEnv;
+    const { users, pool, usdc, oracle, agt, configurator, helpersContract, addressesProvider } = testEnv;
     const depositor = users[3];
     const borrower = users[4];
 
     //mints USDC to depositor
-    await usdc
-      .connect(depositor.signer)
-      .mint(await convertToCurrencyDecimals(usdc.address, '1000'));
+    await mintTokens(usdc, depositor.address, await convertToCurrencyDecimals(usdc.address, '1000'), depositor.signer);
 
     //approve protocol to access depositor wallet
     await usdc.connect(depositor.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -208,7 +234,7 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     const amountAGTtoDeposit = await convertToCurrencyDecimals(agt.address, '100');
 
     //mints AGT to borrower
-    await agt.connect(borrower.signer).mint(amountAGTtoDeposit);
+    await mintTokens(agt, borrower.address, amountAGTtoDeposit, borrower.signer);
 
     //approve protocol to access borrower wallet
     await agt.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -233,15 +259,14 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     await pool
       .connect(borrower.signer)
       .borrow(usdc.address, amountUSDCToBorrow, RateMode.Variable, '0', borrower.address);
-
+    
     // Drops HF below 1
-    await oracle.setAssetPrice(
-      usdc.address,
-      new BigNumber(usdcPrice.toString()).multipliedBy(1.2).toFixed(0)
-    );
+    const newPrice = new BigNumber(usdcPrice.toString()).multipliedBy(1.2).toFixed(0);
+    await setAggregatorPrice(oracle, usdc.address, newPrice);
 
     //mints usdc to the liquidator
-    await usdc.mint(await convertToCurrencyDecimals(usdc.address, '1000'));
+    const { deployer } = testEnv;
+    await mintTokens(usdc, deployer.address, await convertToCurrencyDecimals(usdc.address, '1000'), deployer.signer);
     await usdc.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
     const userReserveDataBefore = await helpersContract.getUserReserveData(
@@ -253,8 +278,9 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
       .multipliedBy(0.5)
       .toFixed(0);
 
-    // Pause pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     // Do liquidation
     await expect(
@@ -262,28 +288,30 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('SwapBorrowRateMode should fail because pool is paused', async () => {
-    const { pool, agt, usdc, usdt, users, configurator } = testEnv;
+    const { pool, agt, usdc, usdt, users, configurator, addressesProvider } = testEnv;
     const user = users[1];
     const amountAGTToDeposit = parseEther('100');
     const amountUSDTToDeposit = parseUnits('1000', 6);
     const amountToBorrow = parseUnits('65', 6);
 
-    await agt.connect(user.signer).mint(amountAGTToDeposit);
+    await mintTokens(agt, user.address, amountAGTToDeposit, user.signer);
     await agt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
     await pool.connect(user.signer).deposit(agt.address, amountAGTToDeposit, user.address, '0');
 
-    await usdt.connect(user.signer).mint(amountUSDTToDeposit);
+    await mintTokens(usdt, user.address, amountUSDTToDeposit, user.signer);
     await usdt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
     await pool.connect(user.signer).deposit(usdt.address, amountUSDTToDeposit, user.address, '0');
 
     await pool.connect(user.signer).borrow(usdc.address, amountToBorrow, 2, 0, user.address);
 
-    // Pause pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     // Try to swap rate mode
     await expect(
@@ -291,40 +319,45 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('RebalanceStableBorrowRate should fail because the pool is paused, even if there is no stable borrow', async () => {
-    const { pool, usdc, users, configurator } = testEnv;
+    const { pool, usdc, users, configurator, addressesProvider } = testEnv;
     const user = users[1];
-    // Pause pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     await expect(
       pool.connect(user.signer).rebalanceStableBorrowRate(usdc.address, user.address)
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 
   it('setUserUseReserveAsCollateral', async () => {
-    const { pool, agt, users, configurator } = testEnv;
+    const { pool, agt, users, configurator, addressesProvider } = testEnv;
     const user = users[1];
 
     const amountAGTToDeposit = parseEther('10');
-    await agt.connect(user.signer).mint(amountAGTToDeposit);
+    await mintTokens(agt, user.address, amountAGTToDeposit, user.signer);
     await agt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
     await pool.connect(user.signer).deposit(agt.address, amountAGTToDeposit, user.address, '0');
 
-    // Pause pool
-    await configurator.connect(users[1].signer).setPoolPause(true);
+    // Pause pool (admin only)
+    const adminSigner = await getEmergencyAdminSigner(addressesProvider);
+    await configurator.connect(adminSigner).setPoolPause(true);
 
     await expect(
       pool.connect(user.signer).setUserUseReserveAsCollateral(agt.address, false)
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
-    await configurator.connect(users[1].signer).setPoolPause(false);
+    await configurator.connect(adminSigner).setPoolPause(false);
+    await stopImpersonatingEmergencyAdmin(addressesProvider);
   });
 });

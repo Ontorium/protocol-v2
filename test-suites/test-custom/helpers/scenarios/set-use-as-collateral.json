@@ -137,14 +137,14 @@
       ]
     },
     {
-      "description": "User 1 deposits 1000 USDC and 100 AGT, borrows 500 USDT. User 1 tries to disable USDC as collateral (revert expected - AGT alone cannot cover debt)",
+      "description": "User 3 deposits 1000 USDC and 50 AGT, borrows 700 USDT. User 3 tries to disable USDC as collateral (revert expected - AGT alone cannot cover debt)",
       "actions": [
         {
           "name": "mint",
           "args": {
             "reserve": "USDC",
             "amount": "1000",
-            "user": "1"
+            "user": "3"
           },
           "expected": "success"
         },
@@ -152,7 +152,7 @@
           "name": "approve",
           "args": {
             "reserve": "USDC",
-            "user": "1"
+            "user": "3"
           },
           "expected": "success"
         },
@@ -161,7 +161,7 @@
           "args": {
             "reserve": "USDC",
             "amount": "1000",
-            "user": "1"
+            "user": "3"
           },
           "expected": "success"
         },
@@ -169,8 +169,8 @@
           "name": "mint",
           "args": {
             "reserve": "AGT",
-            "amount": "100",
-            "user": "1"
+            "amount": "50",
+            "user": "3"
           },
           "expected": "success"
         },
@@ -178,7 +178,7 @@
           "name": "approve",
           "args": {
             "reserve": "AGT",
-            "user": "1"
+            "user": "3"
           },
           "expected": "success"
         },
@@ -186,8 +186,8 @@
           "name": "deposit",
           "args": {
             "reserve": "AGT",
-            "amount": "100",
-            "user": "1"
+            "amount": "50",
+            "user": "3"
           },
           "expected": "success"
         },
@@ -196,7 +196,7 @@
           "args": {
             "reserve": "USDT",
             "amount": "1000",
-            "user": "2"
+            "user": "4"
           },
           "expected": "success"
         },
@@ -204,7 +204,7 @@
           "name": "approve",
           "args": {
             "reserve": "USDT",
-            "user": "2"
+            "user": "4"
           },
           "expected": "success"
         },
@@ -213,7 +213,7 @@
           "args": {
             "reserve": "USDT",
             "amount": "1000",
-            "user": "2"
+            "user": "4"
           },
           "expected": "success"
         },
@@ -221,9 +221,9 @@
           "name": "borrow",
           "args": {
             "reserve": "USDT",
-            "amount": "500",
+            "amount": "700",
             "borrowRateMode": "variable",
-            "user": "1"
+            "user": "3"
           },
           "expected": "success"
         },
@@ -231,7 +231,7 @@
           "name": "setUseAsCollateral",
           "args": {
             "reserve": "USDC",
-            "user": "1",
+            "user": "3",
             "useAsCollateral": "false"
           },
           "expected": "revert",
@@ -240,13 +240,13 @@
       ]
     },
     {
-      "description": "User 1 can disable AGT as collateral since USDC alone still covers the debt",
+      "description": "User 3 can disable AGT as collateral since USDC alone still covers the debt",
       "actions": [
         {
           "name": "setUseAsCollateral",
           "args": {
             "reserve": "AGT",
-            "user": "1",
+            "user": "3",
             "useAsCollateral": "false"
           },
           "expected": "success"

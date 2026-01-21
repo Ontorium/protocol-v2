@@ -27,6 +27,7 @@ import {
 import { MAX_UINT_AMOUNT, ONE_YEAR } from '../../../helpers/constants';
 import { SignerWithAddress, TestEnv } from './make-suite';
 import { advanceTimeAndBlock, DRE, timeLatest, waitForTx } from '../../../helpers/misc-utils';
+import { mintTokens } from '../../test-custom/helpers/mint-tokens';
 
 import chai from 'chai';
 import { ReserveData, UserReserveData } from './utils/interfaces';
@@ -116,10 +117,15 @@ export const mint = async (reserveSymbol: string, amount: string, user: SignerWi
   const reserve = await getReserveAddressFromSymbol(reserveSymbol);
 
   const token = await getMintableERC20(reserve);
+  const mintAmount = await convertToCurrencyDecimals(reserve, amount);
 
-  await waitForTx(
-    await token.connect(user.signer).mint(await convertToCurrencyDecimals(reserve, amount))
-  );
+  if (process.env.USE_DEPLOYED) {
+    // USE_DEPLOYED 모드: owner impersonation을 통한 mint
+    await mintTokens(token, user.address, mintAmount, user.signer);
+  } else {
+    // 로컬 모드: 직접 mint
+    await waitForTx(await token.connect(user.signer).mint(mintAmount));
+  }
 };
 
 export const approve = async (reserveSymbol: string, user: SignerWithAddress, testEnv: TestEnv) => {
@@ -349,7 +355,7 @@ export const borrow = async (
   );
 
   const amountToBorrow = await convertToCurrencyDecimals(reserve, amount);
-  
+
   if (expectedResult === 'success') {
     const txResult = await waitForTx(
       await pool

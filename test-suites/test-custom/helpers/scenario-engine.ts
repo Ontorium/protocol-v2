@@ -1,6 +1,5 @@
 import { TestEnv, SignerWithAddress } from './make-suite';
 import {
-  mint,
   approve,
   deposit,
   borrow,
@@ -12,6 +11,8 @@ import {
   delegateBorrowAllowance,
 } from '../../test-aave/helpers/actions';
 import { RateMode } from '../../../helpers/types';
+import { mintTokens } from './mint-tokens';
+import { convertToCurrencyDecimals } from '../../../helpers/contracts-helpers';
 
 export interface Action {
   name: string;
@@ -81,7 +82,13 @@ const executeAction = async (action: Action, users: SignerWithAddress[], testEnv
         throw `Invalid amount of ${reserve} to mint`;
       }
 
-      await mint(reserve, amount, user);
+      // deposit-borrow.spec.ts 방식: mintTokens 사용
+      const token = (testEnv as any)[reserve.toLowerCase()];
+      if (!token) {
+        throw `Token ${reserve} not found in testEnv`;
+      }
+      const mintAmount = await convertToCurrencyDecimals(token.address, amount);
+      await mintTokens(token, user.address, mintAmount, user.signer);
       break;
 
     case 'approve':

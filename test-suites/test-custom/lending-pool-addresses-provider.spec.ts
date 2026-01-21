@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import { waitForTx } from '../../helpers/misc-utils';
 import { deployLendingPool } from '../../helpers/contracts-deployments';
+import { getAddressesProviderOwnerSigner, stopImpersonatingAddressesProviderOwner } from './helpers/mint-tokens';
 
 const { utils } = ethers;
 
@@ -15,7 +16,10 @@ makeSuite('LendingPoolAddressesProvider', (testEnv: TestEnv) => {
     const mockAddress = createRandomAddress();
     const { INVALID_OWNER_REVERT_MSG } = ProtocolErrors;
 
-    await addressesProvider.transferOwnership(users[1].address);
+    // USE_DEPLOYED 모드에서는 실제 owner를 impersonate해서 ownership 이전
+    const ownerSigner = await getAddressesProviderOwnerSigner(addressesProvider);
+    await addressesProvider.connect(ownerSigner).transferOwnership(users[1].address);
+    await stopImpersonatingAddressesProviderOwner(addressesProvider);
 
     for (const contractFunction of [
       addressesProvider.setMarketId,

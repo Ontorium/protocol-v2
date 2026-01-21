@@ -1,4 +1,5 @@
 import rawBRE from 'hardhat';
+import { ethers } from 'ethers';
 import { MockContract } from 'ethereum-waffle';
 import {
   insertContractAddressInDb,
@@ -230,15 +231,34 @@ before(async () => {
   await rawBRE.run('set-DRE');
   const [deployer, secondaryWallet] = await getEthersSigners();
   const FORK = process.env.FORK;
+  const USE_DEPLOYED = process.env.USE_DEPLOYED; // LendingPoolAddressesProvider 주소
 
-  if (FORK) {
+  if (USE_DEPLOYED) {
+    // 이미 배포된 컨트랙트 주소를 사용 (테스트넷 포크에서)
+    console.log('-> Using already deployed contracts...');
+    console.log('   LendingPoolAddressesProvider:', USE_DEPLOYED);
+
+    // Anvil fork에서 테스트 계정들에 ETH 충전
+    const rpcUrl = process.env.HARDHAT_NETWORK_URL || 'http://localhost:8545';
+    const directProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
+    const signers = await getEthersSigners();
+    console.log('-> Funding test accounts with ETH...');
+    for (const signer of signers) {
+      const address = await signer.getAddress();
+      await directProvider.send('anvil_setBalance', [address, '0x56BC75E2D63100000']); // 100 ETH
+    }
+    console.log(`   Funded ${signers.length} accounts`);
+  } else if (FORK) {
+    // 포크 체인에서 새로 배포
+    console.log('-> Deploying on forked network:', FORK);
     await rawBRE.run('custom:dev', { skipRegistry: true });
   } else {
+    // 로컬 하드햇에서 새로 배포
     console.log('-> Deploying test environment...');
     await buildTestEnv(deployer, secondaryWallet);
   }
 
-  await initializeMakeSuite();
+  await initializeMakeSuite(USE_DEPLOYED);
   console.log('\n***************');
   console.log('Setup and snapshot finished');
   console.log('***************\n');

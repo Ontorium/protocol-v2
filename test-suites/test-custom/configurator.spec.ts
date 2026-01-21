@@ -3,6 +3,7 @@ import { APPROVAL_AMOUNT_LENDING_POOL, RAY } from '../../helpers/constants';
 import { convertToCurrencyDecimals } from '../../helpers/contracts-helpers';
 import { ProtocolErrors } from '../../helpers/types';
 import { strategyAGT, strategyUSDC } from '../../markets/custom/reservesConfigs';
+import { mintTokens, getAdminSigner } from './helpers/mint-tokens';
 
 const { expect } = require('chai');
 
@@ -18,25 +19,30 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   } = ProtocolErrors;
 
   it('Reverts trying to set an invalid reserve factor', async () => {
-    const { configurator, agt } = testEnv;
+    const { configurator, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
 
     const invalidReserveFactor = 65536;
 
     await expect(
-      configurator.setReserveFactor(agt.address, invalidReserveFactor)
+      configurator.connect(adminSigner).setReserveFactor(agt.address, invalidReserveFactor)
     ).to.be.revertedWith(RC_INVALID_RESERVE_FACTOR);
   });
 
   it('Deactivates the AGT reserve', async () => {
-    const { configurator, agt, helpersContract } = testEnv;
-    await configurator.deactivateReserve(agt.address);
+    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).deactivateReserve(agt.address);
     const { isActive } = await helpersContract.getReserveConfigurationData(agt.address);
     expect(isActive).to.be.equal(false);
   });
 
   it('Reactivates the AGT reserve', async () => {
-    const { configurator, agt, helpersContract } = testEnv;
-    await configurator.activateReserve(agt.address);
+    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).activateReserve(agt.address);
 
     const { isActive } = await helpersContract.getReserveConfigurationData(agt.address);
     expect(isActive).to.be.equal(true);
@@ -59,9 +65,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Freezes the AGT reserve', async () => {
-    const { configurator, agt, helpersContract } = testEnv;
+    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.freezeReserve(agt.address);
+    await configurator.connect(adminSigner).freezeReserve(agt.address);
     const {
       decimals,
       ltv,
@@ -86,8 +93,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Unfreezes the AGT reserve', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.unfreezeReserve(agt.address);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).unfreezeReserve(agt.address);
 
     const {
       decimals,
@@ -129,8 +138,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Deactivates the AGT reserve for borrowing', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.disableBorrowingOnReserve(agt.address);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).disableBorrowingOnReserve(agt.address);
     const {
       decimals,
       ltv,
@@ -155,9 +166,11 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Activates the AGT reserve for borrowing', async () => {
-    const { configurator, agt, helpersContract } = testEnv;
+    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
     // Enable borrowing with stable rate enabled (second param = true)
-    await configurator.enableBorrowingOnReserve(agt.address, true);
+    await configurator.connect(adminSigner).enableBorrowingOnReserve(agt.address, true);
     const { variableBorrowIndex } = await helpersContract.getReserveData(agt.address);
 
     const {
@@ -203,8 +216,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Deactivates the AGT reserve as collateral', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.configureReserveAsCollateral(agt.address, 0, 0, 0);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).configureReserveAsCollateral(agt.address, 0, 0, 0);
 
     const {
       decimals,
@@ -230,8 +245,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Activates the AGT reserve as collateral', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.configureReserveAsCollateral(agt.address, strategyAGT.baseLTVAsCollateral, strategyAGT.liquidationThreshold, strategyAGT.liquidationBonus);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).configureReserveAsCollateral(agt.address, strategyAGT.baseLTVAsCollateral, strategyAGT.liquidationThreshold, strategyAGT.liquidationBonus);
 
     const {
       decimals,
@@ -268,8 +285,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Disable stable borrow rate on the AGT reserve', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.disableReserveStableRate(agt.address);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).disableReserveStableRate(agt.address);
     const {
       decimals,
       ltv,
@@ -294,8 +313,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Enables stable borrow rate on the AGT reserve', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.enableReserveStableRate(agt.address);
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).enableReserveStableRate(agt.address);
     const {
       decimals,
       ltv,
@@ -336,8 +357,10 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Changes the reserve factor of AGT', async () => {
-    const { configurator, helpersContract, agt } = testEnv;
-    await configurator.setReserveFactor(agt.address, '1000');
+    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).setReserveFactor(agt.address, '1000');
     const {
       decimals,
       ltv,
@@ -371,9 +394,11 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   });
 
   it('Reverts when trying to disable the USDC reserve with liquidity on it', async () => {
-    const { usdc, pool, configurator } = testEnv;
+    const { usdc, pool, configurator, deployer, addressesProvider } = testEnv;
+    const adminSigner = await getAdminSigner(addressesProvider);
     const userAddress = await pool.signer.getAddress();
-    await usdc.mint(await convertToCurrencyDecimals(usdc.address, '1000'));
+
+    await mintTokens(usdc, deployer.address, await convertToCurrencyDecimals(usdc.address, '1000'), deployer.signer);
 
     //approve protocol to access depositor wallet
     await usdc.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -383,7 +408,7 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
     await pool.deposit(usdc.address, amountUSDCtoDeposit, userAddress, '0');
 
     await expect(
-      configurator.deactivateReserve(usdc.address),
+      configurator.connect(adminSigner).deactivateReserve(usdc.address),
       LPC_RESERVE_LIQUIDITY_NOT_0
     ).to.be.revertedWith(LPC_RESERVE_LIQUIDITY_NOT_0);
   });

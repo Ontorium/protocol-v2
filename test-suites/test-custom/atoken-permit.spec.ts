@@ -1,14 +1,21 @@
 import { MAX_UINT_AMOUNT, ZERO_ADDRESS } from '../../helpers/constants';
 import { BUIDLEREVM_CHAINID } from '../../helpers/buidler-constants';
-import { buildPermitParams, getSignatureFromTypedData } from '../../helpers/contracts-helpers';
+import { buildPermitParams } from '../../helpers/contracts-helpers';
 import { expect } from 'chai';
 import { ethers } from 'ethers';
 import { makeSuite, TestEnv } from './helpers/make-suite';
 import { DRE } from '../../helpers/misc-utils';
 import { waitForTx } from '../../helpers/misc-utils';
 import { _TypedDataEncoder } from 'ethers/lib/utils';
+import { mintTokens } from './helpers/mint-tokens';
 
 const { parseEther } = ethers.utils;
+
+async function signPermitFromSigner(signer: any, msgParams: any) {
+  const types = { Permit: msgParams.types.Permit }; // exclude EIP712Domain
+  const signature = await signer._signTypedData(msgParams.domain, types, msgParams.message);
+  return ethers.utils.splitSignature(signature);
+}
 
 makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   it('Checks the domain separator', async () => {
@@ -28,24 +35,29 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
 
   it('Get aAGT for tests', async () => {
     const { agt, pool, deployer } = testEnv;
+    const amount = parseEther('20000');
 
-    await agt.mint(parseEther('20000'));
-    await agt.approve(pool.address, parseEther('20000'));
+    await mintTokens(agt, deployer.address, amount, deployer.signer);
+    await agt.approve(pool.address, amount);
 
-    await pool.deposit(agt.address, parseEther('20000'), deployer.address, 0);
+    await waitForTx(
+      await pool.deposit(agt.address, amount, deployer.address, 0)
+    );
   });
 
   it('Reverts submitting a permit with 0 expiration', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const tokenName = await aAGT.name();
-
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
-    const expiration = 0;
+
+    const deadline = 0;
     const nonce = (await aAGT._nonces(owner.address)).toNumber();
-    const permitAmount = ethers.utils.parseEther('2').toString();
+    const permitAmount = parseEther('2').toString();
+
+    // buildPermitParams expects (deadline, value) at the end (same as original tests)
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -54,26 +66,21 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       owner.address,
       spender.address,
       nonce,
-      permitAmount,
-      expiration.toFixed()
+      deadline.toString(),
+      permitAmount
     );
-
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
 
     expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
 
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
       aAGT
         .connect(spender.signer)
-        .permit(owner.address, spender.address, permitAmount, expiration, v, r, s)
+        .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
 
     expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
@@ -83,14 +90,15 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   });
 
   it('Submits a permit with maximum expiration length', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
     const nonce = (await aAGT._nonces(owner.address)).toNumber();
     const permitAmount = parseEther('2').toString();
+
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -103,17 +111,12 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
-
     expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
 
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await waitForTx(
       await aAGT
@@ -125,14 +128,15 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   });
 
   it('Cancels the previous permit', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
     const nonce = (await aAGT._nonces(owner.address)).toNumber();
     const permitAmount = '0';
+
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -145,15 +149,10 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
-
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
-      ethers.utils.parseEther('2'),
+      parseEther('2').toString(),
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
 
@@ -162,6 +161,7 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     );
+
     expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
       permitAmount,
       'INVALID_ALLOWANCE_AFTER_PERMIT'
@@ -171,14 +171,15 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   });
 
   it('Tries to submit a permit with invalid nonce', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
     const nonce = 1000;
     const permitAmount = '0';
+
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -191,12 +192,7 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
-
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
       aAGT
@@ -206,49 +202,15 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   });
 
   it('Tries to submit a permit with invalid expiration (previous to the current block)', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
-    const expiration = '1';
+    const deadline = '1'; // in the past
     const nonce = (await aAGT._nonces(owner.address)).toNumber();
     const permitAmount = '0';
-    const msgParams = buildPermitParams(
-      chainId,
-      aAGT.address,
-      '1',
-      await aAGT.name(),
-      owner.address,
-      spender.address,
-      nonce,
-      expiration,
-      permitAmount
-    );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
-
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
-
-    await expect(
-      aAGT
-        .connect(spender.signer)
-        .permit(owner.address, spender.address, expiration, permitAmount, v, r, s)
-    ).to.be.revertedWith('INVALID_EXPIRATION');
-  });
-
-  it('Tries to submit a permit with invalid signature', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
-    const spender = users[1];
-
-    const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
-    const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
-    const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -261,12 +223,38 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    await expect(
+      aAGT
+        .connect(spender.signer)
+        .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
+    ).to.be.revertedWith('INVALID_EXPIRATION');
+  });
+
+  it('Tries to submit a permit with invalid signature', async () => {
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
+    const spender = users[1];
+
+    const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
+    const deadline = MAX_UINT_AMOUNT;
+    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const permitAmount = '0';
+
+    const msgParams = buildPermitParams(
+      chainId,
+      aAGT.address,
+      '1',
+      await aAGT.name(),
+      owner.address,
+      spender.address,
+      nonce,
+      deadline,
+      permitAmount
+    );
+
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
       aAGT
@@ -276,14 +264,15 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   });
 
   it('Tries to submit a permit with invalid owner', async () => {
-    const { aAGT, deployer, users } = testEnv;
-    const owner = deployer;
+    const { aAGT, users } = testEnv;
+    const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
-    const expiration = MAX_UINT_AMOUNT;
+    const deadline = MAX_UINT_AMOUNT;
     const nonce = (await aAGT._nonces(owner.address)).toNumber();
     const permitAmount = '0';
+
     const msgParams = buildPermitParams(
       chainId,
       aAGT.address,
@@ -292,21 +281,16 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       owner.address,
       spender.address,
       nonce,
-      expiration,
+      deadline,
       permitAmount
     );
 
-    const ownerPrivateKey = require('../../test-wallets.js').accounts[0].secretKey;
-    if (!ownerPrivateKey) {
-      throw new Error('INVALID_OWNER_PK');
-    }
-
-    const { v, r, s } = getSignatureFromTypedData(ownerPrivateKey, msgParams);
+    const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
       aAGT
         .connect(spender.signer)
-        .permit(ZERO_ADDRESS, spender.address, expiration, permitAmount, v, r, s)
+        .permit(ZERO_ADDRESS, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_OWNER');
   });
 });

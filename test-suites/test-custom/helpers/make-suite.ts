@@ -1,5 +1,7 @@
-import { evmRevert, evmSnapshot, DRE } from '../../../helpers/misc-utils';
+import { evmRevert, evmSnapshot, DRE, getDb } from '../../../helpers/misc-utils';
 import { Signer } from 'ethers';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   getLendingPool,
   getLendingPoolAddressesProvider,
@@ -19,6 +21,7 @@ import { AToken } from '../../../types/AToken';
 import { LendingPoolConfigurator } from '../../../types/LendingPoolConfigurator';
 
 import chai from 'chai';
+// @ts-ignore
 import bignumberChai from 'chai-bignumber';
 import { almostEqual } from '../../test-aave/helpers/almost-equal';
 import { PriceOracle } from '../../../types/PriceOracle';
@@ -81,13 +84,20 @@ const testEnv: TestEnv = {
   registry: {} as LendingPoolAddressesProviderRegistry,
 } as TestEnv;
 
-export async function initializeMakeSuite() {
+/**
+ * Initialize test suite
+ * @param addressesProviderAddress - Optional: 이미 배포된 LendingPoolAddressesProvider 주소
+ *                                   설정하면 해당 주소에서 다른 컨트랙트 주소를 가져옴
+ */
+export async function initializeMakeSuite(addressesProviderAddress?: string) {
   const [_deployer, ...restSigners] = await getEthersSigners();
   const deployer: SignerWithAddress = {
     address: await _deployer.getAddress(),
     signer: _deployer,
   };
 
+  // Reset users array to avoid accumulation when initializeMakeSuite is called multiple times
+  testEnv.users = [];
   for (const signer of restSigners) {
     testEnv.users.push({
       signer,
@@ -95,15 +105,45 @@ export async function initializeMakeSuite() {
     });
   }
   testEnv.deployer = deployer;
-  testEnv.pool = await getLendingPool();
 
-  testEnv.configurator = await getLendingPoolConfiguratorProxy();
+  // USE_DEPLOYED 모드: 이미 배포된 컨트랙트 주소에서 가져오기
+  if (addressesProviderAddress) {
+    console.log('Loading contracts from AddressesProvider:', addressesProviderAddress);
+    testEnv.addressesProvider = await getLendingPoolAddressesProvider(addressesProviderAddress);
 
-  testEnv.addressesProvider = await getLendingPoolAddressesProvider();
+    const poolAddress = await testEnv.addressesProvider.getLendingPool();
+    testEnv.pool = await getLendingPool(poolAddress);
 
-  testEnv.oracle = await getPriceOracle();
+    const configuratorAddress = await testEnv.addressesProvider.getLendingPoolConfigurator();
+    testEnv.configurator = await getLendingPoolConfiguratorProxy(configuratorAddress);
 
-  testEnv.helpersContract = await getAaveProtocolDataProvider();
+    const oracleAddress = await testEnv.addressesProvider.getPriceOracle();
+    testEnv.oracle = await getPriceOracle(oracleAddress);
+
+    // DataProvider는 AddressesProvider에서 직접 가져올 수 없으므로 별도 설정 필요
+    // getAddress(bytes32) 사용: keccak256("DATA_PROVIDER") = 0x...
+    const dataProviderAddress = await testEnv.addressesProvider.getAddress(
+      '0x0100000000000000000000000000000000000000000000000000000000000000'
+    );
+    if (dataProviderAddress !== '0x0000000000000000000000000000000000000000') {
+      testEnv.helpersContract = await getAaveProtocolDataProvider(dataProviderAddress);
+    } else {
+      // Fallback: 환경변수로 DataProvider 주소 전달
+      const dataProviderEnv = process.env.DATA_PROVIDER;
+      if (dataProviderEnv) {
+        testEnv.helpersContract = await getAaveProtocolDataProvider(dataProviderEnv);
+      } else {
+        throw new Error('DATA_PROVIDER address required for USE_DEPLOYED mode');
+      }
+    }
+  } else {
+    // 기존 모드: 내부 DB에서 주소 가져오기
+    testEnv.pool = await getLendingPool();
+    testEnv.configurator = await getLendingPoolConfiguratorProxy();
+    testEnv.addressesProvider = await getLendingPoolAddressesProvider();
+    testEnv.oracle = await getPriceOracle();
+    testEnv.helpersContract = await getAaveProtocolDataProvider();
+  }
 
   // Get tokens
   const allTokens = await testEnv.helpersContract.getAllATokens();
@@ -147,16 +187,65 @@ export async function initializeMakeSuite() {
     testEnv.aUSDT = await getAToken(aUSDTAddress);
   }
 
-  testEnv.registry = await getLendingPoolAddressesProviderRegistry();
+  // USE_DEPLOYED 모드: getReserveAddressFromSymbol이 사용하는 DB에 토큰 주소 등록
+  // getReserveAddressFromSymbol은 `${symbol}.${DRE.network.name}` 형식으로 조회함
+  if (addressesProviderAddress && DRE) {
+    const networkName = DRE.network.name;
+    const db = getDb();
+
+    if (agtAddress) {
+      db.set(`AGT.${networkName}`, { address: agtAddress }).write();
+    }
+    if (usdcAddress) {
+      db.set(`USDC.${networkName}`, { address: usdcAddress }).write();
+    }
+    if (usdtAddress) {
+      db.set(`USDT.${networkName}`, { address: usdtAddress }).write();
+    }
+
+    // LendingRateOracle 주소도 DB에 등록 (getLendingRateOracle이 사용)
+    const lendingRateOracleAddress = await testEnv.addressesProvider.getLendingRateOracle();
+    if (lendingRateOracleAddress && lendingRateOracleAddress !== '0x0000000000000000000000000000000000000000') {
+      db.set(`LendingRateOracle.${networkName}`, { address: lendingRateOracleAddress }).write();
+    }
+  }
+
+  // Registry lookup
+  if (addressesProviderAddress) {
+    // USE_DEPLOYED 모드: deployed-contracts.json에서 registry 주소 로드
+    try {
+      const deployedContractsPath = path.resolve(__dirname, '../../../deployed-contracts.json');
+      const deployedContracts = JSON.parse(fs.readFileSync(deployedContractsPath, 'utf8'));
+      const registryEntry = deployedContracts['LendingPoolAddressesProviderRegistry'];
+      // arbitrumSepolia 우선, 없으면 다른 네트워크에서 찾기
+      const registryAddress = registryEntry?.arbitrumSepolia?.address
+        || registryEntry?.hardhat?.address
+        || (Object.values(registryEntry || {})[0] as any)?.address;
+      if (registryAddress) {
+        testEnv.registry = await getLendingPoolAddressesProviderRegistry(registryAddress);
+      }
+    } catch (e) {
+      console.warn('Could not load registry from deployed-contracts.json:', e);
+    }
+  } else {
+    testEnv.registry = await getLendingPoolAddressesProviderRegistry();
+  }
 }
 
 const setSnapshot = async () => {
-  const hre: HardhatRuntimeEnvironment = DRE as HardhatRuntimeEnvironment;
+  if (process.env.USE_DEPLOYED) {
+    // USE_DEPLOYED 모드: 파일마다 새 Anvil 포크를 시작하므로 스냅샷 불필요
+    // 또한 파일 내 테스트들이 순차적으로 의존하는 경우가 많음
+    return;
+  }
   setBuidlerevmSnapshotId(await evmSnapshot());
 };
 
 const revertHead = async () => {
-  const hre: HardhatRuntimeEnvironment = DRE as HardhatRuntimeEnvironment;
+  if (process.env.USE_DEPLOYED) {
+    // USE_DEPLOYED 모드: 파일마다 새 Anvil 포크를 시작하므로 리버트 불필요
+    return;
+  }
   await evmRevert(buidlerevmSnapshotId);
 };
 

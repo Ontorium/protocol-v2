@@ -7,6 +7,7 @@ import { makeSuite } from './helpers/make-suite';
 import { ProtocolErrors, RateMode } from '../../helpers/types';
 import { calcExpectedVariableDebtTokenBalance } from '../test-aave/helpers/utils/calculations';
 import { getReserveData, getUserData } from '../test-aave/helpers/utils/helpers';
+import { mintTokens, getAdminSigner, stopImpersonatingAdmin, setAggregatorPrice } from './helpers/mint-tokens';
 
 import { parseEther } from 'ethers/lib/utils';
 
@@ -26,23 +27,28 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
   });
 
   it("It's not possible to liquidate on a non-active collateral or a non active principal", async () => {
-    const { configurator, agt, pool, users, usdc } = testEnv;
+    const { configurator, agt, pool, users, usdc, addressesProvider } = testEnv;
     const user = users[1];
-    await configurator.deactivateReserve(agt.address);
+
+    // Admin only operations
+    const adminSigner = await getAdminSigner(addressesProvider);
+
+    await configurator.connect(adminSigner).deactivateReserve(agt.address);
 
     await expect(
       pool.liquidationCall(agt.address, usdc.address, user.address, parseEther('1000'), false)
     ).to.be.revertedWith('2');
 
-    await configurator.activateReserve(agt.address);
+    await configurator.connect(adminSigner).activateReserve(agt.address);
 
-    await configurator.deactivateReserve(usdc.address);
+    await configurator.connect(adminSigner).deactivateReserve(usdc.address);
 
     await expect(
       pool.liquidationCall(agt.address, usdc.address, user.address, parseEther('1000'), false)
     ).to.be.revertedWith('2');
 
-    await configurator.activateReserve(usdc.address);
+    await configurator.connect(adminSigner).activateReserve(usdc.address);
+    await stopImpersonatingAdmin(addressesProvider);
   });
 
   it('Deposits AGT, borrows USDC', async () => {
@@ -51,7 +57,7 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     const borrower = users[1];
 
     //mints USDC to depositor - need enough for the borrow based on AGT collateral value
-    await usdc.connect(depositor.signer).mint(await convertToCurrencyDecimals(usdc.address, '10000'));
+    await mintTokens(usdc, depositor.address, await convertToCurrencyDecimals(usdc.address, '10000'), depositor.signer);
 
     //approve protocol to access depositor wallet
     await usdc.connect(depositor.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -67,7 +73,7 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     const amountAGTtoDeposit = await convertToCurrencyDecimals(agt.address, '100');
 
     //mints AGT to borrower
-    await agt.connect(borrower.signer).mint(await convertToCurrencyDecimals(agt.address, '100'));
+    await mintTokens(agt, borrower.address, await convertToCurrencyDecimals(agt.address, '100'), borrower.signer);
 
     //approve protocol to access the borrower wallet
     await agt.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -107,7 +113,8 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
 
     // Use a multiplier (1.25x) to drop HF below 1
-    await oracle.setAssetPrice(
+    await setAggregatorPrice(
+      oracle,
       usdc.address,
       new BigNumber(usdcPrice.toString()).multipliedBy(1.25).toFixed(0)
     );
@@ -126,7 +133,7 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     const borrower = users[1];
 
     //mints usdc to the liquidator - need enough to cover half the debt
-    await usdc.connect(liquidator.signer).mint(await convertToCurrencyDecimals(usdc.address, '5000'));
+    await mintTokens(usdc, liquidator.address, await convertToCurrencyDecimals(usdc.address, '5000'), liquidator.signer);
 
     //approve protocol to access the liquidator wallet
     await usdc.connect(liquidator.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -164,14 +171,14 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
 
   it('User 3 deposits 10000 USDC, user 4 deposits 100 AGT, user 4 borrows - Loss', async () => {
     const { usdc, agt, users, pool, oracle, helpersContract } = testEnv;
-    const depositor = users[3];
-    const borrower = users[4];
+    const depositor = users[6];
+    const borrower = users[7];
 
     // Reset USDC price to original value for this test
-    await oracle.setAssetPrice(usdc.address, oneEther.toFixed(0));
+    await setAggregatorPrice(oracle, usdc.address, oneEther.toFixed(0));
 
     //mints USDC to depositor - need enough for the borrow
-    await usdc.connect(depositor.signer).mint(await convertToCurrencyDecimals(usdc.address, '10000'));
+    await mintTokens(usdc, depositor.address, await convertToCurrencyDecimals(usdc.address, '10000'), depositor.signer);
 
     //approve protocol to access depositor wallet
     await usdc.connect(depositor.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -187,7 +194,7 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     const amountAGTtoDeposit = await convertToCurrencyDecimals(agt.address, '100');
 
     //mints AGT to borrower
-    await agt.connect(borrower.signer).mint(amountAGTtoDeposit);
+    await mintTokens(agt, borrower.address, amountAGTtoDeposit, borrower.signer);
 
     //approve protocol to access borrower wallet
     await agt.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -220,14 +227,15 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
     );
   });
 
-  it('Drop the health factor below 1', async () => {
+  it('Drop the health factor below 1 (second)', async () => {
     const { usdc, users, pool, oracle } = testEnv;
-    const borrower = users[4];
+    const borrower = users[7];
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
 
     // Use a multiplier (1.25x) to drop HF below 1
-    await oracle.setAssetPrice(
+    await setAggregatorPrice(
+      oracle,
       usdc.address,
       new BigNumber(usdcPrice.toString()).multipliedBy(1.25).toFixed(0)
     );
@@ -242,11 +250,11 @@ makeSuite('LendingPool liquidation - liquidator receiving the underlying asset',
 
   it('Liquidates the borrow', async () => {
     const { usdc, agt, users, pool, helpersContract } = testEnv;
-    const liquidator = users[5];
-    const borrower = users[4];
+    const liquidator = users[8];
+    const borrower = users[7];
 
     //mints usdc to the liquidator - need enough to cover half the debt
-    await usdc.connect(liquidator.signer).mint(await convertToCurrencyDecimals(usdc.address, '5000'));
+    await mintTokens(usdc, liquidator.address, await convertToCurrencyDecimals(usdc.address, '5000'), liquidator.signer);
 
     //approve protocol to access the liquidator wallet
     await usdc.connect(liquidator.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
