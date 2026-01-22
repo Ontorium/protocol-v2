@@ -11,6 +11,7 @@ function getRpcUrl(): string {
 /**
  * Helper function to mint tokens in USE_DEPLOYED mode
  * Uses Anvil impersonation to transfer tokens from whale address
+ * Uses direct JsonRpcProvider for impersonation, then syncs state
  */
 export async function mintTokens(
   token: any,
@@ -19,6 +20,7 @@ export async function mintTokens(
   recipientSigner: any
 ): Promise<void> {
   if (process.env.USE_DEPLOYED) {
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
     const tokenAbi = [
@@ -28,6 +30,7 @@ export async function mintTokens(
       'function mint(address,uint256) external',
     ];
 
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const tokenContract = new hre.ethers.Contract(token.address, tokenAbi, directProvider);
 
     // AGT 토큰인 경우 minters 함수를 통해 mint
@@ -50,9 +53,11 @@ export async function mintTokens(
       await directProvider.send('anvil_setBalance', [minterAddress, '0x56BC75E2D63100000']);
 
       const minterSigner = directProvider.getSigner(minterAddress);
+      // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
       const tokenWithMinter = new hre.ethers.Contract(token.address, tokenAbi, minterSigner);
 
-      await tokenWithMinter['mint(address,uint256)'](recipient, amount);
+      const tx = await tokenWithMinter['mint(address,uint256)'](recipient, amount);
+      await tx.wait();
       await directProvider.send('anvil_stopImpersonatingAccount', [minterAddress]);
     } else {
       // USDC/USDT: whale 주소에서 transfer
@@ -64,13 +69,25 @@ export async function mintTokens(
         await directProvider.send('anvil_setBalance', [TOKEN_WHALE_ADDRESS, '0x56BC75E2D63100000']);
 
         const whaleSigner = directProvider.getSigner(TOKEN_WHALE_ADDRESS);
+        // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
         const tokenWithWhale = new hre.ethers.Contract(token.address, tokenAbi, whaleSigner);
 
-        await tokenWithWhale.transfer(recipient, amount);
+        const tx = await tokenWithWhale.transfer(recipient, amount);
+        await tx.wait();
         await directProvider.send('anvil_stopImpersonatingAccount', [TOKEN_WHALE_ADDRESS]);
       } else {
         throw new Error(`Whale address ${TOKEN_WHALE_ADDRESS} does not have enough balance for token ${token.address}. Has: ${whaleBalance.toString()}, needs: ${amount.toString()}`);
       }
+    }
+
+    // Mine a block to ensure state is committed and visible to all providers
+    await directProvider.send('evm_mine', []);
+
+    // Verify the balance was updated by waiting for the state to sync
+    const finalBalance = await tokenContract.balanceOf(recipient);
+    if (finalBalance.lt(amount)) {
+      // Retry mining if balance not yet visible
+      await directProvider.send('evm_mine', []);
     }
   } else {
     // Local mode - direct mint
