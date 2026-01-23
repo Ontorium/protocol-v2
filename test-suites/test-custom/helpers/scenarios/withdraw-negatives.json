@@ -1,0 +1,209 @@
+{
+  "title": "LendingPool: Withdraw negatives (reverts)",
+  "description": "Test cases for withdraw failures with AGT, USDC, USDT.",
+  "stories": [
+    {
+      "description": "User 0 deposits 1000 USDC and tries to withdraw 0 USDC (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "0",
+            "user": "0"
+          },
+          "expected": "revert",
+          "revertMessage": "Amount to redeem needs to be > 0"
+        }
+      ]
+    },
+    {
+      "description": "User 0 tries to withdraw 1100 USDC from the 1000 USDC deposited (revert expected)",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1100",
+            "user": "0"
+          },
+          "expected": "revert",
+          "revertMessage": "User cannot redeem more than the available balance"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws the 1000 USDC deposited",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 deposits 1000 AGT, user 2 deposits 1000 USDC as collateral and borrows 100 AGT. User 2 tries to withdraw all USDC (revert expected due to HF)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "2",
+            "borrowRateMode": "variable"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "2"
+          },
+          "expected": "revert",
+          "revertMessage": "Transfer cannot be allowed."
+        }
+      ]
+    },
+    {
+      "description": "User 3 tries to withdraw 100 USDT without any deposit (revert expected)",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDT",
+            "amount": "100",
+            "user": "3"
+          },
+          "expected": "revert",
+          "revertMessage": "User cannot redeem more than the available balance"
+        }
+      ]
+    },
+    {
+      "description": "User 4 deposits 1000 USDT and tries to withdraw 0 USDT (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDT",
+            "amount": "0",
+            "user": "4"
+          },
+          "expected": "revert",
+          "revertMessage": "Amount to redeem needs to be > 0"
+        }
+      ]
+    }
+  ]
+}

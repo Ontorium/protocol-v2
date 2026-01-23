@@ -1,31 +1,33 @@
 import { expect } from 'chai';
 import { makeSuite, TestEnv } from './helpers/make-suite';
-import { ProtocolErrors, eContractid } from '../../helpers/types';
-import { getEthersSigners } from '../../helpers/contracts-helpers';
-import { MockAToken } from '../../types/MockAToken';
-import { MockStableDebtToken } from '../../types/MockStableDebtToken';
-import { MockVariableDebtToken } from '../../types/MockVariableDebtToken';
+import { ProtocolErrors } from '../../helpers/types';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import {
   getAToken,
-  getMockStableDebtToken,
-  getMockVariableDebtToken,
+  getStableDebtToken,
+  getVariableDebtToken,
 } from '../../helpers/contracts-getters';
+import { getAdminSigner, stopImpersonatingAdmin } from './helpers/mint-tokens';
 import {
   deployMockAToken,
   deployMockStableDebtToken,
   deployMockVariableDebtToken,
 } from '../../helpers/contracts-deployments';
-import { getAdminSigner, stopImpersonatingAdmin } from './helpers/mint-tokens';
-import { MockATokenFactory } from '../../types/MockATokenFactory';
-import { MockStableDebtTokenFactory } from '../../types/MockStableDebtTokenFactory';
-import { MockVariableDebtTokenFactory } from '../../types/MockVariableDebtTokenFactory';
+import { DRE } from '../../helpers/misc-utils';
+import { ethers } from 'ethers';
 
 makeSuite('Upgradeability', (testEnv: TestEnv) => {
   const { CALLER_NOT_POOL_ADMIN } = ProtocolErrors;
-  let newATokenAddress: string;
-  let newStableTokenAddress: string;
-  let newVariableTokenAddress: string;
+
+  // 기존 배포된 implementation 주소 (업그레이드 전)
+  let originalATokenImpl: string;
+  let originalStableDebtImpl: string;
+  let originalVariableDebtImpl: string;
+
+  // 새로 배포할 implementation 주소 (업그레이드 후)
+  let newATokenImplAddress: string;
+  let newStableDebtImplAddress: string;
+  let newVariableDebtImplAddress: string;
 
   // 업그레이드 후 기대하는 토큰 이름/심볼
   const UPDATED_ATOKEN_NAME = 'Aave Interest bearing AGT updated';
@@ -35,66 +37,81 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
   const UPDATED_VARIABLE_DEBT_NAME = 'Aave variable debt bearing AGT updated';
   const UPDATED_VARIABLE_DEBT_SYMBOL = 'variableDebtAGT';
 
-  before('deploying instances', async () => {
-    const { agt, pool } = testEnv;
+  before('load existing proxies and deploy new implementations', async () => {
+    const { agt, pool, helpersContract } = testEnv;
 
-    if (process.env.USE_DEPLOYED) {
-      // USE_DEPLOYED 모드: initialize 없이 implementation만 배포
-      // updateAToken이 proxy를 통해 initialize를 호출할 것임
-      const [deployer] = await getEthersSigners();
+    // 1. 기존 배포된 프록시에서 현재 implementation 주소 조회
+    const { aTokenAddress, stableDebtTokenAddress, variableDebtTokenAddress } =
+      await helpersContract.getReserveTokensAddresses(agt.address);
 
-      const aTokenInstance = await new MockATokenFactory(deployer).deploy();
-      await aTokenInstance.deployTransaction.wait();
+    // 프록시의 implementation 슬롯에서 주소 읽기 (EIP-1967)
+    // Implementation slot: 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+    const implSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 
-      const stableDebtTokenInstance = await new MockStableDebtTokenFactory(deployer).deploy();
-      await stableDebtTokenInstance.deployTransaction.wait();
+    // @ts-ignore - DRE.ethers exists at runtime
+    const provider = DRE.ethers.provider;
+    originalATokenImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(aTokenAddress, implSlot)).slice(-40)
+    );
+    originalStableDebtImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(stableDebtTokenAddress, implSlot)).slice(-40)
+    );
+    originalVariableDebtImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(variableDebtTokenAddress, implSlot)).slice(-40)
+    );
 
-      const variableDebtTokenInstance = await new MockVariableDebtTokenFactory(deployer).deploy();
-      await variableDebtTokenInstance.deployTransaction.wait();
+    console.log('=== Original Implementation Addresses ===');
+    console.log('  aToken proxy:', aTokenAddress);
+    console.log('  aToken impl:', originalATokenImpl);
+    console.log('  stableDebtToken proxy:', stableDebtTokenAddress);
+    console.log('  stableDebtToken impl:', originalStableDebtImpl);
+    console.log('  variableDebtToken proxy:', variableDebtTokenAddress);
+    console.log('  variableDebtToken impl:', originalVariableDebtImpl);
+    console.log('==========================================');
 
-      newATokenAddress = aTokenInstance.address;
-      newStableTokenAddress = stableDebtTokenInstance.address;
-      newVariableTokenAddress = variableDebtTokenInstance.address;
-    } else {
-      // 로컬 모드: 기존 방식대로 배포 + initialize
-      const aTokenInstance = await deployMockAToken([
-        pool.address,
-        agt.address,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        'Aave Interest bearing AGT updated',
-        'aAGT',
-        '0x10'
-      ]);
+    // 2. 새로운 implementation 배포
+    const aTokenInstance = await deployMockAToken([
+      pool.address,
+      agt.address,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      UPDATED_ATOKEN_NAME,
+      UPDATED_ATOKEN_SYMBOL,
+      '0x10'
+    ]);
 
-      const stableDebtTokenInstance = await deployMockStableDebtToken([
-        pool.address,
-        agt.address,
-        ZERO_ADDRESS,
-        'Aave stable debt bearing AGT updated',
-        'stableDebtAGT',
-        '0x10'
-      ]);
+    const stableDebtTokenInstance = await deployMockStableDebtToken([
+      pool.address,
+      agt.address,
+      ZERO_ADDRESS,
+      UPDATED_STABLE_DEBT_NAME,
+      UPDATED_STABLE_DEBT_SYMBOL,
+      '0x10'
+    ]);
 
-      const variableDebtTokenInstance = await deployMockVariableDebtToken([
-        pool.address,
-        agt.address,
-        ZERO_ADDRESS,
-        'Aave variable debt bearing AGT updated',
-        'variableDebtAGT',
-        '0x10'
-      ]);
+    const variableDebtTokenInstance = await deployMockVariableDebtToken([
+      pool.address,
+      agt.address,
+      ZERO_ADDRESS,
+      UPDATED_VARIABLE_DEBT_NAME,
+      UPDATED_VARIABLE_DEBT_SYMBOL,
+      '0x10'
+    ]);
 
-      newATokenAddress = aTokenInstance.address;
-      newVariableTokenAddress = variableDebtTokenInstance.address;
-      newStableTokenAddress = stableDebtTokenInstance.address;
-    }
+    newATokenImplAddress = aTokenInstance.address;
+    newStableDebtImplAddress = stableDebtTokenInstance.address;
+    newVariableDebtImplAddress = variableDebtTokenInstance.address;
+
+    console.log('=== New Implementation Addresses ===');
+    console.log('  new aToken impl:', newATokenImplAddress);
+    console.log('  new stableDebtToken impl:', newStableDebtImplAddress);
+    console.log('  new variableDebtToken impl:', newVariableDebtImplAddress);
+    console.log('=====================================');
   });
 
   it('Tries to update the AGT Atoken implementation with a different address than the lendingPoolManager', async () => {
     const { agt, configurator, users, helpersContract } = testEnv;
 
-    // 현재 배포된 aToken에서 treasury 주소 가져오기
     const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
     const currentAToken = await getAToken(aTokenAddress);
     const treasuryAddress = await currentAToken.RESERVE_TREASURY_ADDRESS();
@@ -113,7 +130,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_ATOKEN_NAME,
       symbol: UPDATED_ATOKEN_SYMBOL,
-      implementation: newATokenAddress,
+      implementation: newATokenImplAddress,
       params: "0x10"
     };
     await expect(
@@ -124,9 +141,8 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
   it('Upgrades the AGT Atoken implementation ', async () => {
     const { agt, configurator, helpersContract, addressesProvider } = testEnv;
 
-    // 현재 배포된 aToken에서 treasury 주소 가져오기
-    const { aTokenAddress: currentATokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
-    const currentAToken = await getAToken(currentATokenAddress);
+    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    const currentAToken = await getAToken(aTokenAddress);
     const treasuryAddress = await currentAToken.RESERVE_TREASURY_ADDRESS();
 
     const updateATokenInputParams: {
@@ -143,19 +159,31 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_ATOKEN_NAME,
       symbol: UPDATED_ATOKEN_SYMBOL,
-      implementation: newATokenAddress,
+      implementation: newATokenImplAddress,
       params: "0x10"
     };
 
     const adminSigner = await getAdminSigner(addressesProvider);
+    // callStatic으로 먼저 시뮬레이션
+    await configurator.connect(adminSigner).callStatic.updateAToken(updateATokenInputParams);
     await configurator.connect(adminSigner).updateAToken(updateATokenInputParams);
     await stopImpersonatingAdmin(addressesProvider);
 
+    // 업그레이드 후 implementation 주소 확인
+    const implSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+    // @ts-ignore - DRE.ethers exists at runtime
+    const provider = DRE.ethers.provider;
+    const newImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(aTokenAddress, implSlot)).slice(-40)
+    );
 
-    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    console.log('  aToken impl changed:', originalATokenImpl, '->', newImpl);
+    expect(newImpl).to.not.eq(originalATokenImpl, 'Implementation should have changed');
+    expect(newImpl).to.eq(newATokenImplAddress, 'Implementation should match new address');
+
+    // 토큰 이름도 확인
     const aToken = await getAToken(aTokenAddress);
     const tokenName = await aToken.name();
-
     expect(tokenName).to.be.eq(UPDATED_ATOKEN_NAME, 'Invalid token name');
   });
 
@@ -174,7 +202,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_STABLE_DEBT_NAME,
       symbol: UPDATED_STABLE_DEBT_SYMBOL,
-      implementation: newStableTokenAddress,
+      implementation: newStableDebtImplAddress,
       params: '0x10'
     }
 
@@ -188,6 +216,8 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
   it('Upgrades the AGT stable debt token implementation ', async () => {
     const { agt, configurator, helpersContract, addressesProvider } = testEnv;
 
+    const { stableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+
     const updateDebtTokenInput: {
       asset: string;
       incentivesController: string;
@@ -200,20 +230,31 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_STABLE_DEBT_NAME,
       symbol: UPDATED_STABLE_DEBT_SYMBOL,
-      implementation: newStableTokenAddress,
+      implementation: newStableDebtImplAddress,
       params: '0x10'
     }
 
     const adminSigner = await getAdminSigner(addressesProvider);
+    // callStatic으로 먼저 시뮬레이션
+    await configurator.connect(adminSigner).callStatic.updateStableDebtToken(updateDebtTokenInput);
     await configurator.connect(adminSigner).updateStableDebtToken(updateDebtTokenInput);
     await stopImpersonatingAdmin(addressesProvider);
 
-    const { stableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    // 업그레이드 후 implementation 주소 확인
+    const implSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+    // @ts-ignore - DRE.ethers exists at runtime
+    const provider = DRE.ethers.provider;
+    const newImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(stableDebtTokenAddress, implSlot)).slice(-40)
+    );
 
-    const debtToken = await getMockStableDebtToken(stableDebtTokenAddress);
+    console.log('  stableDebtToken impl changed:', originalStableDebtImpl, '->', newImpl);
+    expect(newImpl).to.not.eq(originalStableDebtImpl, 'Implementation should have changed');
+    expect(newImpl).to.eq(newStableDebtImplAddress, 'Implementation should match new address');
 
+    // 토큰 이름도 확인
+    const debtToken = await getStableDebtToken(stableDebtTokenAddress);
     const tokenName = await debtToken.name();
-
     expect(tokenName).to.be.eq(UPDATED_STABLE_DEBT_NAME, 'Invalid token name');
   });
 
@@ -232,7 +273,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_VARIABLE_DEBT_NAME,
       symbol: UPDATED_VARIABLE_DEBT_SYMBOL,
-      implementation: newVariableTokenAddress,
+      implementation: newVariableDebtImplAddress,
       params: '0x10'
     }
 
@@ -246,6 +287,8 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
   it('Upgrades the AGT variable debt token implementation ', async () => {
     const {agt, configurator, helpersContract, addressesProvider} = testEnv;
 
+    const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+
     const updateDebtTokenInput: {
       asset: string;
       incentivesController: string;
@@ -258,22 +301,31 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_VARIABLE_DEBT_NAME,
       symbol: UPDATED_VARIABLE_DEBT_SYMBOL,
-      implementation: newVariableTokenAddress,
+      implementation: newVariableDebtImplAddress,
       params: '0x10'
     }
 
     const adminSigner = await getAdminSigner(addressesProvider);
+    // callStatic으로 먼저 시뮬레이션
+    await configurator.connect(adminSigner).callStatic.updateVariableDebtToken(updateDebtTokenInput);
     await configurator.connect(adminSigner).updateVariableDebtToken(updateDebtTokenInput);
     await stopImpersonatingAdmin(addressesProvider);
 
-    const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+    // 업그레이드 후 implementation 주소 확인
+    const implSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+    // @ts-ignore - DRE.ethers exists at runtime
+    const provider = DRE.ethers.provider;
+    const newImpl = ethers.utils.getAddress(
+      '0x' + (await provider.getStorageAt(variableDebtTokenAddress, implSlot)).slice(-40)
     );
 
-    const debtToken = await getMockVariableDebtToken(variableDebtTokenAddress);
+    console.log('  variableDebtToken impl changed:', originalVariableDebtImpl, '->', newImpl);
+    expect(newImpl).to.not.eq(originalVariableDebtImpl, 'Implementation should have changed');
+    expect(newImpl).to.eq(newVariableDebtImplAddress, 'Implementation should match new address');
 
+    // 토큰 이름도 확인
+    const debtToken = await getVariableDebtToken(variableDebtTokenAddress);
     const tokenName = await debtToken.name();
-
     expect(tokenName).to.be.eq(UPDATED_VARIABLE_DEBT_NAME, 'Invalid token name');
   });
 });

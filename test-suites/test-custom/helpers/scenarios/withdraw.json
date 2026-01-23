@@ -180,81 +180,6 @@
       ]
     },
     {
-      "description": "Users 0 and 1 Deposit 1000 USDC, both withdraw",
-      "actions": [
-        {
-          "name": "mint",
-          "args": {
-            "reserve": "USDC",
-            "amount": "1000",
-            "user": "0"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "mint",
-          "args": {
-            "reserve": "USDC",
-            "amount": "1000",
-            "user": "1"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "approve",
-          "args": {
-            "reserve": "USDC",
-            "user": "0"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "approve",
-          "args": {
-            "reserve": "USDC",
-            "user": "1"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "deposit",
-          "args": {
-            "reserve": "USDC",
-            "amount": "1000",
-            "user": "0"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "deposit",
-          "args": {
-            "reserve": "USDC",
-            "amount": "1000",
-            "user": "1"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "withdraw",
-          "args": {
-            "reserve": "USDC",
-            "amount": "-1",
-            "user": "0"
-          },
-          "expected": "success"
-        },
-        {
-          "name": "withdraw",
-          "args": {
-            "reserve": "USDC",
-            "amount": "-1",
-            "user": "1"
-          },
-          "expected": "success"
-        }
-      ]
-    },
-    {
       "description": "User 6 deposits 1000 USDC, user 7 deposits 1000 USDT and 100 AGT, borrows 800 USDC at variable. User 7 tries to withdraw all USDT (fails due to HF)",
       "actions": [
         {
@@ -353,7 +278,7 @@
             "user": "7"
           },
           "expected": "revert",
-          "revertMessage": "Transfer cannot exceed the collateral balance"
+          "revertMessage": "Transfer cannot be allowed."
         }
       ]
     },

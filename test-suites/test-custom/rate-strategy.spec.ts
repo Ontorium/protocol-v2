@@ -1,12 +1,15 @@
 import { TestEnv, makeSuite } from './helpers/make-suite';
-import { deployDefaultReserveInterestRateStrategy } from '../../helpers/contracts-deployments';
-
 import { APPROVAL_AMOUNT_LENDING_POOL, PERCENTAGE_FACTOR, RAY } from '../../helpers/constants';
 
 import { rateStrategyCustom } from '../../markets/custom/rateStrategies';
 
 import { strategyAGT } from '../../markets/custom/reservesConfigs';
-import { AToken, DefaultReserveInterestRateStrategy, MintableERC20 } from '../../types';
+import {
+  AToken,
+  DefaultReserveInterestRateStrategy,
+  DefaultReserveInterestRateStrategyFactory,
+  MintableERC20,
+} from '../../types';
 import BigNumber from 'bignumber.js';
 import '../test-aave/helpers/utils/math';
 
@@ -21,19 +24,22 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
     agt = testEnv.agt;
     aAGT = testEnv.aAGT;
 
-    const { addressesProvider } = testEnv;
+    // LendingPool.getReserveData()를 직접 호출하여 interestRateStrategyAddress 획득
+    // (AaveProtocolDataProvider.getReserveData()는 interestRateStrategyAddress를 반환하지 않음)
+    const { pool } = testEnv;
+    const reserveData = await pool.getReserveData(agt.address);
+    const strategyAddress = reserveData.interestRateStrategyAddress;
 
-    strategyInstance = await deployDefaultReserveInterestRateStrategy(
-      [
-        addressesProvider.address,
-        rateStrategyCustom.optimalUtilizationRate,
-        rateStrategyCustom.baseVariableBorrowRate,
-        rateStrategyCustom.variableRateSlope1,
-        rateStrategyCustom.variableRateSlope2,
-        rateStrategyCustom.stableRateSlope1,
-        rateStrategyCustom.stableRateSlope2,
-      ],
-      false
+    console.log('=== Loaded Contract Addresses ===');
+    console.log('  LendingPool:', pool.address);
+    console.log('  AGT Token:', agt.address);
+    console.log('  aAGT Token:', aAGT.address);
+    console.log('  InterestRateStrategy:', strategyAddress);
+    console.log('=================================');
+
+    strategyInstance = await DefaultReserveInterestRateStrategyFactory.connect(
+      strategyAddress,
+      testEnv.deployer.signer
     );
   });
 
