@@ -17,7 +17,8 @@ export const toWad = (value: string | number) => new BigNumber(value).times(WAD)
 export const bnToBigNumber = (amount: BN): BigNumber => new BigNumber(<any>amount);
 export const stringToBigNumber = (amount: string): BigNumber => new BigNumber(amount);
 
-export const getDb = () => low(new FileSync('./deployed-contracts.json'));
+export const getDb = () =>
+  low(new FileSync(process.env.DEPLOYED_CONTRACTS_JSON || './deployed-contracts.json'));
 
 export let DRE: HardhatRuntimeEnvironment | BuidlerRuntimeEnvironment;
 

@@ -23,6 +23,8 @@ export const SUPPORTED_ETHERSCAN_NETWORKS = [
   'goerli',
   'avalanche',
   'fuji',
+  'arbitrum',
+  'arbitrumSepolia',
 ];
 
 function delay(ms: number) {
