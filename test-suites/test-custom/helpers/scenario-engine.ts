@@ -82,7 +82,7 @@ const executeAction = async (action: Action, users: SignerWithAddress[], testEnv
         throw `Invalid amount of ${reserve} to mint`;
       }
 
-      // deposit-borrow.spec.ts 방식: mintTokens 사용
+      // Use mintTokens approach from deposit-borrow.spec.ts
       const token = (testEnv as any)[reserve.toLowerCase()];
       if (!token) {
         throw `Token ${reserve} not found in testEnv`;

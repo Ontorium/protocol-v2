@@ -58,7 +58,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
   it('Takes AGT flashloan with mode = 0, returns the funds correctly', async () => {
     const { pool, helpersContract, agt, deployer } = testEnv;
     
-    // MockFlashLoanReceiver에 premium 지불을 위한 토큰 제공
+    // Provide tokens to MockFlashLoanReceiver for premium payment
     const flashAmount = ethers.utils.parseEther('80');
     const premiumAmount = flashAmount.mul(9).div(10000); // 0.09% premium
     await mintTokens(agt, _mockFlashLoanReceiver.address, premiumAmount.mul(2), deployer.signer);
@@ -287,7 +287,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(false);
 
-    // MockFlashLoanReceiver에 premium 지불을 위한 토큰 제공
+    // Provide tokens to MockFlashLoanReceiver for premium payment
     const flashAmountForPremium = await convertToCurrencyDecimals(usdc.address, '500');
     const premiumAmount = flashAmountForPremium.mul(9).div(10000); // 0.09% premium
     await mintTokens(usdc, _mockFlashLoanReceiver.address, premiumAmount.mul(2), deployer.signer);

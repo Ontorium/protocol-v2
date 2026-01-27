@@ -123,6 +123,15 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
 
   // Repay Tests
 
+  it('Reverts when trying to repay 0 amount', async () => {
+    const { agt, pool, users } = testEnv;
+    const borrower = users[1];
+
+    await expect(
+      pool.connect(borrower.signer).repay(agt.address, 0, RateMode.Variable, borrower.address)
+    ).to.be.revertedWith(VL_INVALID_AMOUNT);
+  });
+
   it('User repays half of AGT debt', async () => {
     const { agt, pool, users, helpersContract } = testEnv;
     const borrower = users[1];

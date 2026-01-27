@@ -231,14 +231,14 @@ before(async () => {
   await rawBRE.run('set-DRE');
   const [deployer, secondaryWallet] = await getEthersSigners();
   const FORK = process.env.FORK;
-  const USE_DEPLOYED = process.env.USE_DEPLOYED; // LendingPoolAddressesProvider 주소
+  const USE_DEPLOYED = process.env.USE_DEPLOYED; // LendingPoolAddressesProvider address
 
   if (USE_DEPLOYED) {
-    // 이미 배포된 컨트랙트 주소를 사용 (테스트넷 포크에서)
+    // Use already deployed contract addresses (on testnet fork)
     console.log('-> Using already deployed contracts...');
     console.log('   LendingPoolAddressesProvider:', USE_DEPLOYED);
 
-    // Anvil fork에서 테스트 계정들에 ETH 충전
+    // Fund test accounts with ETH on Anvil fork
     const rpcUrl = process.env.HARDHAT_NETWORK_URL || 'http://localhost:8545';
     const directProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
     const signers = await getEthersSigners();
@@ -249,11 +249,11 @@ before(async () => {
     }
     console.log(`   Funded ${signers.length} accounts`);
   } else if (FORK) {
-    // 포크 체인에서 새로 배포
+    // Deploy fresh on forked network
     console.log('-> Deploying on forked network:', FORK);
     await rawBRE.run('custom:dev', { skipRegistry: true });
   } else {
-    // 로컬 하드햇에서 새로 배포
+    // Deploy fresh on local hardhat
     console.log('-> Deploying test environment...');
     await buildTestEnv(deployer, secondaryWallet);
   }

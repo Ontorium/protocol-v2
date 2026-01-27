@@ -1,9 +1,9 @@
 import hre from 'hardhat';
 
-// 토큰을 많이 보유한 주소 (테스트넷에서 토큰 전송용)
+// Address holding large token balances (for token transfers on testnet)
 const TOKEN_WHALE_ADDRESS = '0xdD6CB87f7D7a558D7fd89d9C8F5c19501cEF9bed';
 
-// RPC URL helper - HARDHAT_NETWORK_URL 환경변수 지원
+// RPC URL helper - supports HARDHAT_NETWORK_URL environment variable
 function getRpcUrl(): string {
   return process.env.HARDHAT_NETWORK_URL || 'http://localhost:8545';
 }
@@ -33,7 +33,7 @@ export async function mintTokens(
     // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const tokenContract = new hre.ethers.Contract(token.address, tokenAbi, directProvider);
 
-    // AGT 토큰인 경우 minters 함수를 통해 mint
+    // For AGT token, mint via minters function
     let isGoldToken = false;
     let minterAddress: string | null = null;
 
@@ -48,7 +48,7 @@ export async function mintTokens(
     }
 
     if (isGoldToken && minterAddress) {
-      // AGT: minter를 통해 mint
+      // AGT: Mint via minter
       await directProvider.send('anvil_impersonateAccount', [minterAddress]);
       await directProvider.send('anvil_setBalance', [minterAddress, '0x56BC75E2D63100000']);
 
@@ -60,11 +60,11 @@ export async function mintTokens(
       await tx.wait();
       await directProvider.send('anvil_stopImpersonatingAccount', [minterAddress]);
     } else {
-      // USDC/USDT: whale 주소에서 transfer
+      // USDC/USDT: Transfer from whale address
       const whaleBalance = await tokenContract.balanceOf(TOKEN_WHALE_ADDRESS);
 
       if (whaleBalance.gte(amount)) {
-        // Whale 주소에서 전송
+        // Transfer from whale address
         await directProvider.send('anvil_impersonateAccount', [TOKEN_WHALE_ADDRESS]);
         await directProvider.send('anvil_setBalance', [TOKEN_WHALE_ADDRESS, '0x56BC75E2D63100000']);
 
@@ -116,22 +116,22 @@ export async function safeExecute(
 
 /**
  * Helper to get admin signer by impersonating the pool admin
- * USE_DEPLOYED 모드에서 admin 권한이 필요한 테스트에 사용
+ * Used in USE_DEPLOYED mode for tests requiring admin privileges
  */
 export async function getAdminSigner(addressesProvider: any): Promise<any> {
-  // AddressesProvider에서 admin 주소 가져오기
+  // Get admin address from AddressesProvider
   const adminAddress = await addressesProvider.getPoolAdmin();
 
   if (process.env.USE_DEPLOYED) {
-    // USE_DEPLOYED 모드: anvil fork 사용
+    // USE_DEPLOYED mode: Use anvil fork
     // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
     await directProvider.send('anvil_impersonateAccount', [adminAddress]);
     await directProvider.send('anvil_setBalance', [adminAddress, '0x56BC75E2D63100000']); // 100 ETH
-    // impersonate한 동일한 provider에서 signer 반환
+    // Return signer from the same provider used for impersonation
     return directProvider.getSigner(adminAddress);
   } else {
-    // 로컬 hardhat 모드: hardhat impersonation 사용
+    // Local hardhat mode: Use hardhat impersonation
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
       params: [adminAddress],
@@ -161,14 +161,14 @@ export async function stopImpersonatingAdmin(addressesProvider: any): Promise<vo
 
 /**
  * Helper to get emergency admin signer by impersonating
- * USE_DEPLOYED 모드에서 emergency admin 권한이 필요한 테스트에 사용 (setPoolPause 등)
+ * Used in USE_DEPLOYED mode for tests requiring emergency admin privileges (setPoolPause, etc.)
  */
 export async function getEmergencyAdminSigner(addressesProvider: any): Promise<any> {
-  // AddressesProvider에서 emergency admin 주소 가져오기
+  // Get emergency admin address from AddressesProvider
   const emergencyAdminAddress = await addressesProvider.getEmergencyAdmin();
 
   if (!process.env.USE_DEPLOYED) {
-    // 로컬 모드에서는 해당 주소로 signer 가져오기
+    // In local mode, get signer by address
     // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     return await hre.ethers.getSigner(emergencyAdminAddress);
   }
@@ -176,7 +176,7 @@ export async function getEmergencyAdminSigner(addressesProvider: any): Promise<a
   // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
   const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
-  // Emergency Admin 계정 impersonate
+  // Impersonate Emergency Admin account
   await directProvider.send('anvil_impersonateAccount', [emergencyAdminAddress]);
   await directProvider.send('anvil_setBalance', [emergencyAdminAddress, '0x56BC75E2D63100000']); // 100 ETH
 
@@ -198,7 +198,7 @@ export async function stopImpersonatingEmergencyAdmin(addressesProvider: any): P
 
 /**
  * Helper to get oracle owner address from MNEMONIC
- * PriceOracle 컨트랙트는 owner() 함수가 없으므로 MNEMONIC에서 deployer 주소를 파생
+ * PriceOracle contract doesn't have owner() function, so derive deployer address from MNEMONIC
  */
 function getDeployerAddressFromMnemonic(): string {
   const mnemonic = process.env.MNEMONIC;
@@ -212,8 +212,8 @@ function getDeployerAddressFromMnemonic(): string {
 
 /**
  * Helper to get oracle owner signer by impersonating
- * USE_DEPLOYED 모드에서 oracle 가격 조작이 필요한 테스트에 사용
- * PriceOracle은 owner() 함수가 없으므로 MNEMONIC에서 deployer 주소를 사용
+ * Used in USE_DEPLOYED mode for tests requiring oracle price manipulation
+ * PriceOracle doesn't have owner() function, so uses deployer address from MNEMONIC
  */
 export async function getOracleOwnerSigner(oracle: any): Promise<any> {
   if (!process.env.USE_DEPLOYED) {
@@ -223,10 +223,10 @@ export async function getOracleOwnerSigner(oracle: any): Promise<any> {
 
   const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
-  // MNEMONIC에서 deployer(owner) 주소 파생
+  // Derive deployer (owner) address from MNEMONIC
   const ownerAddress = getDeployerAddressFromMnemonic();
 
-  // Owner 계정 impersonate
+  // Impersonate Owner account
   await directProvider.send('anvil_impersonateAccount', [ownerAddress]);
   await directProvider.send('anvil_setBalance', [ownerAddress, '0x56BC75E2D63100000']);
 
@@ -248,7 +248,7 @@ export async function stopImpersonatingOracleOwner(oracle: any): Promise<void> {
 
 /**
  * Helper to get AddressesProvider owner signer by impersonating
- * USE_DEPLOYED 모드에서 AddressesProvider owner 권한이 필요한 테스트에 사용
+ * Used in USE_DEPLOYED mode for tests requiring AddressesProvider owner privileges
  */
 export async function getAddressesProviderOwnerSigner(addressesProvider: any): Promise<any> {
   if (!process.env.USE_DEPLOYED) {
@@ -258,10 +258,10 @@ export async function getAddressesProviderOwnerSigner(addressesProvider: any): P
 
   const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
-  // AddressesProvider에서 owner 주소 가져오기
+  // Get owner address from AddressesProvider
   const ownerAddress = await addressesProvider.owner();
 
-  // Owner 계정 impersonate
+  // Impersonate Owner account
   await directProvider.send('anvil_impersonateAccount', [ownerAddress]);
   await directProvider.send('anvil_setBalance', [ownerAddress, '0x56BC75E2D63100000']); // 100 ETH
 
@@ -283,7 +283,7 @@ export async function stopImpersonatingAddressesProviderOwner(addressesProvider:
 
 /**
  * Helper to get Registry owner signer by impersonating
- * USE_DEPLOYED 모드에서 Registry owner 권한이 필요한 테스트에 사용
+ * Used in USE_DEPLOYED mode for tests requiring Registry owner privileges
  */
 export async function getRegistryOwnerSigner(registry: any): Promise<any> {
   if (!process.env.USE_DEPLOYED) {
@@ -293,10 +293,10 @@ export async function getRegistryOwnerSigner(registry: any): Promise<any> {
 
   const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
-  // Registry에서 owner 주소 가져오기
+  // Get owner address from Registry
   const ownerAddress = await registry.owner();
 
-  // Owner 계정 impersonate
+  // Impersonate Owner account
   await directProvider.send('anvil_impersonateAccount', [ownerAddress]);
   await directProvider.send('anvil_setBalance', [ownerAddress, '0x56BC75E2D63100000']); // 100 ETH
 
@@ -317,59 +317,92 @@ export async function stopImpersonatingRegistryOwner(registry: any): Promise<voi
 }
 
 /**
- * Helper to set asset price in AaveOracle via MockAggregator storage manipulation
- * USE_DEPLOYED 모드에서 MockAggregator의 _latestAnswer를 직접 수정
+ * Helper to set asset price in AaveOracle by deploying a MockAggregator
+ * and updating the oracle's asset source via setAssetSources
+ * Also sets the fallback oracle price for price=0 scenarios
  * @param oracle AaveOracle contract
  * @param asset Asset address
  * @param newPrice New price (in wei, 18 decimals)
  */
 export async function setAggregatorPrice(oracle: any, asset: string, newPrice: string): Promise<void> {
   if (!process.env.USE_DEPLOYED) {
-    // 로컬 모드에서는 PriceOracle.setAssetPrice 직접 호출
+    // In local mode, call PriceOracle.setAssetPrice directly
     await oracle.setAssetPrice(asset, newPrice);
     return;
   }
 
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
   const directProvider = new hre.ethers.providers.JsonRpcProvider(getRpcUrl());
 
-  // AaveOracle에서 asset의 aggregator 주소 가져오기
-  const oracleAbi = ['function getSourceOfAsset(address) view returns (address)'];
+  // Get oracle info (owner, fallback oracle)
+  const oracleAbi = [
+    'function owner() view returns (address)',
+    'function setAssetSources(address[] calldata assets, address[] calldata sources) external',
+    'function getAssetPrice(address) view returns (uint256)',
+    'function getFallbackOracle() view returns (address)'
+  ];
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
   const oracleContract = new hre.ethers.Contract(oracle.address, oracleAbi, directProvider);
 
-  const aggregatorAddress = await oracleContract.getSourceOfAsset(asset);
+  const ownerAddress = await oracleContract.owner();
+  const fallbackOracleAddress = await oracleContract.getFallbackOracle();
 
-  if (aggregatorAddress === hre.ethers.constants.AddressZero) {
-    throw new Error(`No aggregator found for asset ${asset}`);
+  // Impersonate owner
+  await directProvider.send('anvil_impersonateAccount', [ownerAddress]);
+  await directProvider.send('anvil_setBalance', [ownerAddress, '0x56BC75E2D63100000']); // 100 ETH
+
+  // If price is 0 or negative, we need to also set the fallback oracle price
+  // because AaveOracle falls back when aggregator returns price <= 0
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  const priceValue = hre.ethers.BigNumber.from(newPrice);
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  if (priceValue.lte(0) && fallbackOracleAddress !== hre.ethers.constants.AddressZero) {
+    // Set fallback oracle price
+    const fallbackOracleAbi = [
+      'function setAssetPrice(address asset, uint256 price) external'
+    ];
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    const fallbackOracle = new hre.ethers.Contract(
+      fallbackOracleAddress,
+      fallbackOracleAbi,
+      directProvider.getSigner(ownerAddress)
+    );
+    const fallbackTx = await fallbackOracle.setAssetPrice(asset, newPrice);
+    await fallbackTx.wait();
   }
 
-  // MockAggregator의 _latestAnswer는 slot 0에 저장됨
-  // int256 타입이므로 음수 처리는 필요하지 않음 (가격은 항상 양수)
-  const slot = '0x0';
-  const value = hre.ethers.utils.hexZeroPad(hre.ethers.BigNumber.from(newPrice).toHexString(), 32);
+  // Deploy a new MockAggregator with the desired price
+  const MockAggregatorArtifact = await hre.artifacts.readArtifact('MockAggregator');
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  const MockAggregatorFactory = new hre.ethers.ContractFactory(
+    MockAggregatorArtifact.abi,
+    MockAggregatorArtifact.bytecode,
+    directProvider.getSigner(ownerAddress)
+  );
 
-  // Retry logic for reliability on Anvil fork
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    await directProvider.send('anvil_setStorageAt', [aggregatorAddress, slot, value]);
+  // Deploy MockAggregator with the new price
+  const mockAggregator = await MockAggregatorFactory.deploy(newPrice);
+  await mockAggregator.deployed();
 
-    // Mine a block to ensure storage change is committed
-    await directProvider.send('evm_mine', []);
+  // Update oracle to use the new MockAggregator
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  const oracleWithOwner = new hre.ethers.Contract(
+    oracle.address,
+    oracleAbi,
+    directProvider.getSigner(ownerAddress)
+  );
+  const tx = await oracleWithOwner.setAssetSources([asset], [mockAggregator.address]);
+  await tx.wait();
 
-    // Verify the price was updated
-    const aggregatorAbi = ['function latestAnswer() view returns (int256)'];
-    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
-    const aggregator = new hre.ethers.Contract(aggregatorAddress, aggregatorAbi, directProvider);
-    const actualPrice = await aggregator.latestAnswer();
-    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
-    if (actualPrice.eq(hre.ethers.BigNumber.from(newPrice))) {
-      return; // Success
-    }
+  await directProvider.send('anvil_stopImpersonatingAccount', [ownerAddress]);
 
-    if (attempt === maxRetries) {
-      throw new Error(`Failed to set aggregator price after ${maxRetries} attempts. Expected ${newPrice}, got ${actualPrice.toString()}`);
-    }
+  // Mine a block to ensure state is committed
+  await directProvider.send('evm_mine', []);
 
-    // Wait before retry
-    await new Promise(resolve => setTimeout(resolve, 500));
+  // Verify the price was updated
+  const actualPrice = await oracleContract.getAssetPrice(asset);
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  if (!actualPrice.eq(hre.ethers.BigNumber.from(newPrice))) {
+    throw new Error(`Failed to set aggregator price. Expected ${newPrice}, got ${actualPrice.toString()}`);
   }
 }

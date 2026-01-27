@@ -86,8 +86,8 @@ const testEnv: TestEnv = {
 
 /**
  * Initialize test suite
- * @param addressesProviderAddress - Optional: 이미 배포된 LendingPoolAddressesProvider 주소
- *                                   설정하면 해당 주소에서 다른 컨트랙트 주소를 가져옴
+ * @param addressesProviderAddress - Optional: Already deployed LendingPoolAddressesProvider address
+ *                                   If set, loads other contract addresses from this provider
  */
 export async function initializeMakeSuite(addressesProviderAddress?: string) {
   const [_deployer, ...restSigners] = await getEthersSigners();
@@ -106,7 +106,7 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
   }
   testEnv.deployer = deployer;
 
-  // USE_DEPLOYED 모드: 이미 배포된 컨트랙트 주소에서 가져오기
+  // USE_DEPLOYED mode: Load contract addresses from already deployed contracts
   if (addressesProviderAddress) {
     console.log('Loading contracts from AddressesProvider:', addressesProviderAddress);
     testEnv.addressesProvider = await getLendingPoolAddressesProvider(addressesProviderAddress);
@@ -120,15 +120,15 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
     const oracleAddress = await testEnv.addressesProvider.getPriceOracle();
     testEnv.oracle = await getPriceOracle(oracleAddress);
 
-    // DataProvider는 AddressesProvider에서 직접 가져올 수 없으므로 별도 설정 필요
-    // getAddress(bytes32) 사용: keccak256("DATA_PROVIDER") = 0x...
+    // DataProvider cannot be retrieved directly from AddressesProvider, requires separate setup
+    // Using getAddress(bytes32): keccak256("DATA_PROVIDER") = 0x...
     const dataProviderAddress = await testEnv.addressesProvider.getAddress(
       '0x0100000000000000000000000000000000000000000000000000000000000000'
     );
     if (dataProviderAddress !== '0x0000000000000000000000000000000000000000') {
       testEnv.helpersContract = await getAaveProtocolDataProvider(dataProviderAddress);
     } else {
-      // Fallback: 환경변수로 DataProvider 주소 전달
+      // Fallback: Pass DataProvider address via environment variable
       const dataProviderEnv = process.env.DATA_PROVIDER;
       if (dataProviderEnv) {
         testEnv.helpersContract = await getAaveProtocolDataProvider(dataProviderEnv);
@@ -137,7 +137,7 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
       }
     }
   } else {
-    // 기존 모드: 내부 DB에서 주소 가져오기
+    // Default mode: Load addresses from internal DB
     testEnv.pool = await getLendingPool();
     testEnv.configurator = await getLendingPoolConfiguratorProxy();
     testEnv.addressesProvider = await getLendingPoolAddressesProvider();
@@ -187,8 +187,8 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
     testEnv.aUSDT = await getAToken(aUSDTAddress);
   }
 
-  // USE_DEPLOYED 모드: getReserveAddressFromSymbol이 사용하는 DB에 토큰 주소 등록
-  // getReserveAddressFromSymbol은 `${symbol}.${DRE.network.name}` 형식으로 조회함
+  // USE_DEPLOYED mode: Register token addresses in DB used by getReserveAddressFromSymbol
+  // getReserveAddressFromSymbol queries using `${symbol}.${DRE.network.name}` format
   if (addressesProviderAddress && DRE) {
     const networkName = DRE.network.name;
     const db = getDb();
@@ -203,7 +203,7 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
       db.set(`USDT.${networkName}`, { address: usdtAddress }).write();
     }
 
-    // LendingRateOracle 주소도 DB에 등록 (getLendingRateOracle이 사용)
+    // Also register LendingRateOracle address in DB (used by getLendingRateOracle)
     const lendingRateOracleAddress = await testEnv.addressesProvider.getLendingRateOracle();
     if (lendingRateOracleAddress && lendingRateOracleAddress !== '0x0000000000000000000000000000000000000000') {
       db.set(`LendingRateOracle.${networkName}`, { address: lendingRateOracleAddress }).write();
@@ -212,12 +212,12 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
 
   // Registry lookup
   if (addressesProviderAddress) {
-    // USE_DEPLOYED 모드: deployed-contracts.json에서 registry 주소 로드
+    // USE_DEPLOYED mode: Load registry address from deployed-contracts.json
     try {
       const deployedContractsPath = path.resolve(__dirname, '../../../deployed-contracts.json');
       const deployedContracts = JSON.parse(fs.readFileSync(deployedContractsPath, 'utf8'));
       const registryEntry = deployedContracts['LendingPoolAddressesProviderRegistry'];
-      // arbitrumSepolia 우선, 없으면 다른 네트워크에서 찾기
+      // Prefer arbitrumSepolia, fallback to other networks if not found
       const registryAddress = registryEntry?.arbitrumSepolia?.address
         || registryEntry?.hardhat?.address
         || (Object.values(registryEntry || {})[0] as any)?.address;
@@ -234,8 +234,8 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
 
 const setSnapshot = async () => {
   if (process.env.USE_DEPLOYED) {
-    // USE_DEPLOYED 모드: 파일마다 새 Anvil 포크를 시작하므로 스냅샷 불필요
-    // 또한 파일 내 테스트들이 순차적으로 의존하는 경우가 많음
+    // USE_DEPLOYED mode: Each file starts a fresh Anvil fork, so snapshots are unnecessary
+    // Also, tests within a file often depend on each other sequentially
     return;
   }
   setBuidlerevmSnapshotId(await evmSnapshot());
@@ -243,7 +243,7 @@ const setSnapshot = async () => {
 
 const revertHead = async () => {
   if (process.env.USE_DEPLOYED) {
-    // USE_DEPLOYED 모드: 파일마다 새 Anvil 포크를 시작하므로 리버트 불필요
+    // USE_DEPLOYED mode: Each file starts a fresh Anvil fork, so revert is unnecessary
     return;
   }
   await evmRevert(buidlerevmSnapshotId);

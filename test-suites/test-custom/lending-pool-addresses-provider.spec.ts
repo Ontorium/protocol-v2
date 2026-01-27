@@ -16,7 +16,7 @@ makeSuite('LendingPoolAddressesProvider', (testEnv: TestEnv) => {
     const mockAddress = createRandomAddress();
     const { INVALID_OWNER_REVERT_MSG } = ProtocolErrors;
 
-    // USE_DEPLOYED 모드에서는 실제 owner를 impersonate해서 ownership 이전
+    // In USE_DEPLOYED mode, impersonate the actual owner to transfer ownership
     const ownerSigner = await getAddressesProviderOwnerSigner(addressesProvider);
     await addressesProvider.connect(ownerSigner).transferOwnership(users[1].address);
     await stopImpersonatingAddressesProviderOwner(addressesProvider);

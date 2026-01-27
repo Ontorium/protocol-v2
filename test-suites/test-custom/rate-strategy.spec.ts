@@ -24,8 +24,8 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
     agt = testEnv.agt;
     aAGT = testEnv.aAGT;
 
-    // LendingPool.getReserveData()를 직접 호출하여 interestRateStrategyAddress 획득
-    // (AaveProtocolDataProvider.getReserveData()는 interestRateStrategyAddress를 반환하지 않음)
+    // Call LendingPool.getReserveData() directly to get interestRateStrategyAddress
+    // (AaveProtocolDataProvider.getReserveData() does not return interestRateStrategyAddress)
     const { pool } = testEnv;
     const reserveData = await pool.getReserveData(agt.address);
     const strategyAddress = reserveData.interestRateStrategyAddress;
