@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { oneEther, oneRay, RAY, ZERO_ADDRESS } from '../../helpers/constants';
+import { oneEther, oneRay, RAY, ZERO_ADDRESS, oneUsd } from '../../helpers/constants';
 import { ICommonConfiguration, eEthereumNetwork, eArbitrumNetwork } from '../../helpers/types';
 
 // ----------------
@@ -13,8 +13,8 @@ export const CommonsConfig: ICommonConfiguration = {
   VariableDebtTokenNamePrefix: 'Aave variable debt bearing',
   SymbolPrefix: 'c',
   ProviderId: 0, // Overridden in index.ts
-  OracleQuoteCurrency: 'ETH',
-  OracleQuoteUnit: oneEther.toString(),
+  OracleQuoteCurrency: 'USD',
+  OracleQuoteUnit: oneUsd.toString(),
   ProtocolGlobalParams: {
     TokenDistributorPercentageBase: '10000',
     MockUsdPriceInWei: '5848466240000000',
@@ -31,11 +31,11 @@ export const CommonsConfig: ICommonConfiguration = {
   Mocks: {
     AllAssetsInitialPrices: {
       // For testing: All tokens at same price to simplify math
-      // 1 token = 1 ETH value for easy calculation
-      AGT: oneEther.toFixed(),
-      USDC: oneEther.toFixed(),
-      USDT: oneEther.toFixed(),
-      USD: oneEther.toFixed(),
+      // 1 token = 1 USD value for easy calculation
+      AGT: oneUsd.toFixed(),
+      USDC: oneUsd.toFixed(),
+      USDT: oneUsd.toFixed(),
+      USD: oneUsd.toFixed(),
     },
   },
   // TODO: reorg alphabetically, checking the reason of tests failing
