@@ -11,8 +11,12 @@ import {
   delegateBorrowAllowance,
 } from '../../test-aave/helpers/actions';
 import { RateMode } from '../../../helpers/types';
-import { mintTokens } from './mint-tokens';
+import { mintTokens, setAggregatorPrice, setLiquidationWhitelist } from './mint-tokens';
 import { convertToCurrencyDecimals } from '../../../helpers/contracts-helpers';
+import { parseUnits } from 'ethers/lib/utils';
+
+const chai = require('chai');
+const { expect } = chai;
 
 export interface Action {
   name: string;
@@ -235,6 +239,77 @@ const executeAction = async (action: Action, users: SignerWithAddress[], testEnv
         const target = users[parseInt(targetIndex)];
 
         await rebalanceStableBorrowRate(reserve, user, target, expected, testEnv, revertMessage);
+      }
+      break;
+
+    case 'setPrice':
+      {
+        const { price } = action.args;
+        if (!price || price === '') {
+          throw `Invalid price for setPrice action on ${reserve}`;
+        }
+        const priceToken = (testEnv as any)[reserve.toLowerCase()];
+        if (!priceToken) throw `Token ${reserve} not found in testEnv`;
+        const { oracle } = testEnv;
+        await setAggregatorPrice(oracle, priceToken.address, parseUnits(price, 8).toString());
+      }
+      break;
+
+    case 'setLiquidationWhitelist':
+      {
+        const { target: targetIndex, allowed } = action.args;
+        if (!targetIndex || targetIndex === '') {
+          throw `Invalid target user for setLiquidationWhitelist`;
+        }
+        const targetUser = users[parseInt(targetIndex)];
+        const { configurator, addressesProvider } = testEnv;
+        await setLiquidationWhitelist(configurator, addressesProvider, targetUser.address, allowed === 'true');
+      }
+      break;
+
+    case 'liquidationCall':
+      {
+        const { collateral, amount, borrower: borrowerIndex, receiveAToken } = action.args;
+        if (!collateral || collateral === '') {
+          throw `Invalid collateral asset for liquidation`;
+        }
+        if (!amount || amount === '') {
+          throw `Invalid amount to liquidate`;
+        }
+        if (!borrowerIndex || borrowerIndex === '') {
+          throw `Invalid borrower index for liquidation`;
+        }
+
+        const borrowerUser = users[parseInt(borrowerIndex)];
+        const collateralToken = (testEnv as any)[collateral.toLowerCase()];
+        const debtToken = (testEnv as any)[reserve.toLowerCase()];
+
+        if (!collateralToken) throw `Collateral token ${collateral} not found in testEnv`;
+        if (!debtToken) throw `Debt token ${reserve} not found in testEnv`;
+
+        const amountToLiquidate = await convertToCurrencyDecimals(debtToken.address, amount);
+        const { pool } = testEnv;
+        const receive = receiveAToken === 'true';
+
+        if (expected === 'revert') {
+          await expect(
+            pool.connect(user.signer).liquidationCall(
+              collateralToken.address,
+              debtToken.address,
+              borrowerUser.address,
+              amountToLiquidate,
+              receive
+            )
+          ).to.be.revertedWith(revertMessage || '');
+        } else {
+          await pool.connect(user.signer).liquidationCall(
+            collateralToken.address,
+            debtToken.address,
+            borrowerUser.address,
+            amountToLiquidate,
+            receive
+          );
+        }
       }
       break;
 

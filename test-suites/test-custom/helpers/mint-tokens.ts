@@ -406,3 +406,26 @@ export async function setAggregatorPrice(oracle: any, asset: string, newPrice: s
     throw new Error(`Failed to set aggregator price. Expected ${newPrice}, got ${actualPrice.toString()}`);
   }
 }
+
+/**
+ * Helper to set liquidation whitelist via LendingPoolConfigurator
+ * Uses raw ABI to bypass typechain types that may not include this function
+ */
+export async function setLiquidationWhitelist(
+  configurator: any,
+  addressesProvider: any,
+  liquidatorAddress: string,
+  allowed: boolean
+): Promise<void> {
+  const adminSigner = await getAdminSigner(addressesProvider);
+
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  const configuratorContract = new hre.ethers.Contract(
+    configurator.address,
+    ['function setLiquidationWhitelist(address liquidator, bool allowed) external'],
+    adminSigner
+  );
+  await configuratorContract.setLiquidationWhitelist(liquidatorAddress, allowed);
+
+  await stopImpersonatingAdmin(addressesProvider);
+}
