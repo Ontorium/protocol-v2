@@ -1,6 +1,11 @@
 import { task } from 'hardhat/config';
 import { checkVerification } from '../../helpers/etherscan-verification';
-import { ConfigNames, getTreasuryAddress, loadPoolConfig } from '../../helpers/configuration';
+import {
+  ConfigNames,
+  getQuoteCurrency,
+  getTreasuryAddress,
+  loadPoolConfig,
+} from '../../helpers/configuration';
 import { printContracts, waitForTx } from '../../helpers/misc-utils';
 import {
   deployMintableERC20,
@@ -27,7 +32,7 @@ import {
   getLendingPoolConfiguratorProxy,
 } from '../../helpers/contracts-getters';
 import { eContractid, tEthereumAddress } from '../../helpers/types';
-import { ZERO_ADDRESS, oneEther } from '../../helpers/constants';
+import { ZERO_ADDRESS } from '../../helpers/constants';
 import { initReservesByHelper, configureReservesByHelper } from '../../helpers/init-helpers';
 
 task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environment')
@@ -49,6 +54,7 @@ task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environme
       ProtocolGlobalParams: { UsdAddress, MockUsdPriceInWei },
       LendingRateOracleRatesCommon,
       OracleQuoteCurrency,
+      OracleQuoteUnit,
       ATokenNamePrefix,
       StableDebtTokenNamePrefix,
       VariableDebtTokenNamePrefix,
@@ -129,8 +135,8 @@ task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environme
         tokens,
         aggregators,
         fallbackOracle.address,
-        ZERO_ADDRESS, // No WETH for custom market
-        oneEther.toString(),
+        await getQuoteCurrency(config),
+        OracleQuoteUnit,
       ],
       verify
     );

@@ -1,6 +1,11 @@
 import { task } from 'hardhat/config';
 import { checkVerification } from '../../helpers/etherscan-verification';
-import { ConfigNames, getGenesisPoolAdmin, loadPoolConfig } from '../../helpers/configuration';
+import {
+  ConfigNames,
+  getGenesisPoolAdmin,
+  getQuoteCurrency,
+  loadPoolConfig,
+} from '../../helpers/configuration';
 import { printContracts, waitForTx } from '../../helpers/misc-utils';
 import {
   getLendingPoolAddressesProvider,
@@ -19,7 +24,6 @@ import {
 } from '../../helpers/oracles-helpers';
 import { getParamPerNetwork } from '../../helpers/contracts-helpers';
 import { eNetwork, ICommonConfiguration, tEthereumAddress } from '../../helpers/types';
-import { ZERO_ADDRESS, oneEther } from '../../helpers/constants';
 
 task('custom:testnet', 'Deploy Custom market to testnet (Arbitrum Sepolia)')
   .addFlag('verify', 'Verify contracts at Etherscan/Arbiscan')
@@ -57,6 +61,7 @@ task('custom:testnet', 'Deploy Custom market to testnet (Arbitrum Sepolia)')
       ProtocolGlobalParams: { UsdAddress, MockUsdPriceInWei },
       LendingRateOracleRatesCommon,
       OracleQuoteCurrency,
+      OracleQuoteUnit,
       ReserveAssets,
     } = config as ICommonConfiguration;
 
@@ -102,7 +107,13 @@ task('custom:testnet', 'Deploy Custom market to testnet (Arbitrum Sepolia)')
 
     // Deploy AaveOracle
     const aaveOracle = await deployAaveOracle(
-      [tokens, aggregators, fallbackOracle.address, ZERO_ADDRESS, oneEther.toString()],
+      [
+        tokens,
+        aggregators,
+        fallbackOracle.address,
+        await getQuoteCurrency(config),
+        OracleQuoteUnit,
+      ],
       verify
     );
 

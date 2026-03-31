@@ -3,11 +3,13 @@ pragma solidity 0.6.12;
 
 contract MockAggregator {
   int256 private _latestAnswer;
+  uint8 private _decimals;
 
   event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 timestamp);
 
-  constructor(int256 _initialAnswer) public {
+  constructor(int256 _initialAnswer, uint8 _initialDecimals) public {
     _latestAnswer = _initialAnswer;
+    _decimals = _initialDecimals;
     emit AnswerUpdated(_initialAnswer, 0, now);
   }
 
@@ -15,12 +17,11 @@ contract MockAggregator {
     return _latestAnswer;
   }
 
+  function decimals() external view returns (uint8) {
+    return _decimals;
+  }
+
   function getTokenType() external view returns (uint256) {
     return 1;
   }
-
-  // function getSubTokens() external view returns (address[] memory) {
-  // TODO: implement mock for when multiple subtokens. Maybe we need to create diff mock contract
-  // to call it from the migration for this case??
-  // }
 }
