@@ -1,0 +1,257 @@
+{
+  "title": "LendingPool: setUserUseReserveAsCollateral",
+  "description": "Test cases for enabling/disabling reserve as collateral with AGT, USDC, USDT.",
+  "stories": [
+    {
+      "description": "User 0 deposits 1000 USDC, disables it as collateral",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "USDC",
+            "user": "0",
+            "useAsCollateral": "false"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 re-enables USDC as collateral",
+      "actions": [
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "USDC",
+            "user": "0",
+            "useAsCollateral": "true"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 100 AGT, disables it as collateral",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "AGT",
+            "user": "0",
+            "useAsCollateral": "false"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDT, disables it as collateral",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "USDT",
+            "user": "0",
+            "useAsCollateral": "false"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 3 deposits 1000 USDC and 50 AGT, borrows 700 USDT. User 3 tries to disable USDC as collateral (revert expected - AGT alone cannot cover debt)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "50",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "50",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDT",
+            "amount": "700",
+            "borrowRateMode": "variable",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "USDC",
+            "user": "3",
+            "useAsCollateral": "false"
+          },
+          "expected": "revert",
+          "revertMessage": "20"
+        }
+      ]
+    },
+    {
+      "description": "User 3 can disable AGT as collateral since USDC alone still covers the debt",
+      "actions": [
+        {
+          "name": "setUseAsCollateral",
+          "args": {
+            "reserve": "AGT",
+            "user": "3",
+            "useAsCollateral": "false"
+          },
+          "expected": "success"
+        }
+      ]
+    }
+  ]
+}

@@ -19,6 +19,8 @@ import {
   iXDaiParamsPerNetwork,
   iAvalancheParamsPerNetwork,
   eAvalancheNetwork,
+  iArbitrumParamsPerNetwork,
+  eArbitrumNetwork,
 } from './types';
 import { MintableERC20 } from '../types/MintableERC20';
 import { Artifact } from 'hardhat/types';
@@ -145,13 +147,18 @@ export const linkBytecode = (artifact: BuidlerArtifact | Artifact, libraries: an
 };
 
 export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNetwork) => {
-  const { main, ropsten, kovan, coverage, buidlerevm, tenderly, goerli } =
+  const networkName = network as unknown as string;
+  const { main, ropsten, kovan, coverage, buidlerevm, tenderly, goerli, localhost } =
     param as iEthereumParamsPerNetwork<T>;
   const { matic, mumbai } = param as iPolygonParamsPerNetwork<T>;
   const { xdai } = param as iXDaiParamsPerNetwork<T>;
   const { avalanche, fuji } = param as iAvalancheParamsPerNetwork<T>;
+  const { arbitrum, arbitrumSepolia } = param as iArbitrumParamsPerNetwork<T>;
   if (process.env.FORK) {
     return param[process.env.FORK as eNetwork] as T;
+  }
+  if (networkName === 'buidlerevm_docker') {
+    return buidlerevm;
   }
 
   switch (network) {
@@ -161,6 +168,8 @@ export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNet
       return buidlerevm;
     case eEthereumNetwork.hardhat:
       return buidlerevm;
+    case eEthereumNetwork.localhost:
+      return localhost;
     case eEthereumNetwork.kovan:
       return kovan;
     case eEthereumNetwork.ropsten:
@@ -181,6 +190,10 @@ export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNet
       return fuji;
     case eEthereumNetwork.goerli:
       return goerli;
+    case eArbitrumNetwork.arbitrum:
+      return arbitrum;
+    case eArbitrumNetwork.arbitrumSepolia:
+      return arbitrumSepolia;
   }
 };
 

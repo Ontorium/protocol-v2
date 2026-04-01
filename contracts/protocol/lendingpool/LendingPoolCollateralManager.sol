@@ -37,6 +37,9 @@ contract LendingPoolCollateralManager is
   using PercentageMath for uint256;
 
   uint256 internal constant LIQUIDATION_CLOSE_FACTOR_PERCENT = 5000;
+  uint256 internal constant FULL_LIQUIDATION_HF_THRESHOLD = 0.95e18;
+  uint256 internal constant USD_UNIT = 1e8;
+  uint256 internal constant FULL_LIQUIDATION_BASE_THRESHOLD = 2000 * USD_UNIT; // 2000e8
 
   struct LiquidationCallLocalVars {
     uint256 userCollateralBalance;
@@ -119,8 +122,17 @@ contract LendingPoolCollateralManager is
 
     vars.userCollateralBalance = vars.collateralAtoken.balanceOf(user);
 
-    vars.maxLiquidatableDebt = vars.userStableDebt.add(vars.userVariableDebt).percentMul(
-      LIQUIDATION_CLOSE_FACTOR_PERCENT
+    uint256 userDebt = vars.userStableDebt.add(vars.userVariableDebt);
+
+    vars.maxLiquidatableDebt = _getMaxDebtToLiquidate(
+      collateralReserve,
+      debtReserve,
+      collateralAsset,
+      debtAsset,
+      vars.healthFactor,
+      vars.userCollateralBalance,
+      userDebt,
+      msg.sender
     );
 
     vars.actualDebtToLiquidate = debtToCover > vars.maxLiquidatableDebt
@@ -150,8 +162,9 @@ contract LendingPoolCollateralManager is
     // If the liquidator reclaims the underlying asset, we make sure there is enough available liquidity in the
     // collateral reserve
     if (!receiveAToken) {
-      uint256 currentAvailableCollateral =
-        IERC20(collateralAsset).balanceOf(address(vars.collateralAtoken));
+      uint256 currentAvailableCollateral = IERC20(collateralAsset).balanceOf(
+        address(vars.collateralAtoken)
+      );
       if (currentAvailableCollateral < vars.maxCollateralToLiquidate) {
         return (
           uint256(Errors.CollateralManagerErrors.NOT_ENOUGH_LIQUIDITY),
@@ -296,22 +309,89 @@ contract LendingPoolCollateralManager is
     vars.maxAmountCollateralToLiquidate = vars
       .debtAssetPrice
       .mul(debtToCover)
-      .mul(10**vars.collateralDecimals)
+      .mul(10 ** vars.collateralDecimals)
       .percentMul(vars.liquidationBonus)
-      .div(vars.collateralPrice.mul(10**vars.debtAssetDecimals));
+      .div(vars.collateralPrice.mul(10 ** vars.debtAssetDecimals));
 
     if (vars.maxAmountCollateralToLiquidate > userCollateralBalance) {
       collateralAmount = userCollateralBalance;
       debtAmountNeeded = vars
         .collateralPrice
         .mul(collateralAmount)
-        .mul(10**vars.debtAssetDecimals)
-        .div(vars.debtAssetPrice.mul(10**vars.collateralDecimals))
+        .mul(10 ** vars.debtAssetDecimals)
+        .div(vars.debtAssetPrice.mul(10 ** vars.collateralDecimals))
         .percentDiv(vars.liquidationBonus);
     } else {
       collateralAmount = vars.maxAmountCollateralToLiquidate;
       debtAmountNeeded = debtToCover;
     }
     return (collateralAmount, debtAmountNeeded);
+  }
+
+  function _getMaxDebtToLiquidate(
+    DataTypes.ReserveData storage collateralReserve,
+    DataTypes.ReserveData storage debtReserve,
+    address collateralAsset,
+    address debtAsset,
+    uint256 healthFactor,
+    uint256 userCollateralBalance,
+    uint256 userDebt,
+    address liquidator
+  ) internal view returns (uint256) {
+    // Default (everyone): 50% of this debtAsset debt
+    uint256 maxDebt = userDebt.percentMul(LIQUIDATION_CLOSE_FACTOR_PERCENT);
+
+    if (!_liquidationWhitelist[liquidator]) {
+      return maxDebt;
+    }
+
+    // Whitelist full liquidation conditions
+    if (healthFactor <= FULL_LIQUIDATION_HF_THRESHOLD) {
+      return userDebt;
+    }
+
+    uint256 collateralValueBase = _getCollateralValueBase(
+      collateralReserve,
+      collateralAsset,
+      userCollateralBalance
+    );
+    if (collateralValueBase < FULL_LIQUIDATION_BASE_THRESHOLD) {
+      return userDebt;
+    }
+
+    uint256 debtValueBase = _getDebtValueBase(debtReserve, debtAsset, userDebt);
+    if (debtValueBase < FULL_LIQUIDATION_BASE_THRESHOLD) {
+      return userDebt;
+    }
+
+    return maxDebt;
+  }
+
+  function _getCollateralValueBase(
+    DataTypes.ReserveData storage collateralReserve,
+    address collateralAsset,
+    uint256 userCollateralBalance
+  ) internal view returns (uint256) {
+    uint256 price = IPriceOracleGetter(_addressesProvider.getPriceOracle()).getAssetPrice(
+      collateralAsset
+    );
+    uint256 unit = 10 ** collateralReserve.configuration.getDecimals();
+    // floor
+    return price.mul(userCollateralBalance).div(unit);
+  }
+
+  function _getDebtValueBase(
+    DataTypes.ReserveData storage debtReserve,
+    address debtAsset,
+    uint256 userDebt
+  ) internal view returns (uint256) {
+    uint256 price = IPriceOracleGetter(_addressesProvider.getPriceOracle()).getAssetPrice(
+      debtAsset
+    );
+    uint256 unit = 10 ** debtReserve.configuration.getDecimals();
+
+    // ceil: (price*amount + unit-1)/unit
+    uint256 v = price.mul(userDebt);
+    return v.add(unit.sub(1)).div(unit);
   }
 }

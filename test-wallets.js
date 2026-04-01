@@ -34,5 +34,54 @@ module.exports = {
       secretKey: '0xa2e0097c961c67ec197b6865d7ecea6caffc68ebeb00e6050368c8f67fc9c588',
       balance,
     },
+    // Additional accounts for tests that use users[7+]
+    {
+      secretKey: '0x1111111111111111111111111111111111111111111111111111111111111111',
+      balance,
+    },
+    {
+      secretKey: '0x2222222222222222222222222222222222222222222222222222222222222222',
+      balance,
+    },
+    {
+      secretKey: '0x3333333333333333333333333333333333333333333333333333333333333333',
+      balance,
+    },
+    {
+      secretKey: '0x4444444444444444444444444444444444444444444444444444444444444444',
+      balance,
+    },
+    {
+      secretKey: '0x5555555555555555555555555555555555555555555555555555555555555555',
+      balance,
+    },
+    {
+      secretKey: '0x6666666666666666666666666666666666666666666666666666666666666666',
+      balance,
+    },
+    {
+      secretKey: '0x7777777777777777777777777777777777777777777777777777777777777777',
+      balance,
+    },
+    {
+      secretKey: '0x8888888888888888888888888888888888888888888888888888888888888888',
+      balance,
+    },
+    {
+      secretKey: '0x9999999999999999999999999999999999999999999999999999999999999999',
+      balance,
+    },
+    {
+      secretKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      balance,
+    },
+    {
+      secretKey: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      balance,
+    },
+    {
+      secretKey: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      balance,
+    },
   ],
 };

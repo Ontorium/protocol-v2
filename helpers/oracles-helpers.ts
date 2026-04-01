@@ -106,7 +106,7 @@ export const deployMockAggregators = async (initialPrices: SymbolMap<string>, ve
         (value) => value === tokenContractName
       );
       const [, price] = (Object.entries(initialPrices) as [string, string][])[priceIndex];
-      aggregators[tokenContractName] = await deployMockAggregator(price, verify);
+      aggregators[tokenContractName] = await deployMockAggregator(price, 8, verify);
     }
   }
   return aggregators;
@@ -123,7 +123,7 @@ export const deployAllMockAggregators = async (
         (value) => value === tokenContractName
       );
       const [, price] = (Object.entries(initialPrices) as [string, string][])[priceIndex];
-      aggregators[tokenContractName] = (await deployMockAggregator(price, verify)).address;
+      aggregators[tokenContractName] = (await deployMockAggregator(price, 8, verify)).address;
     }
   }
   return aggregators;

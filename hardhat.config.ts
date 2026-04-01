@@ -4,6 +4,7 @@ import { HardhatUserConfig } from 'hardhat/types';
 // @ts-ignore
 import { accounts } from './test-wallets.js';
 import {
+  eArbitrumNetwork,
   eAvalancheNetwork,
   eEthereumNetwork,
   eNetwork,
@@ -36,7 +37,8 @@ const DEFAULT_GAS_MUL = 5;
 const HARDFORK = 'istanbul';
 const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY || '';
 const MNEMONIC_PATH = "m/44'/60'/0'/0";
-const MNEMONIC = process.env.MNEMONIC || '';
+const DEFAULT_MNEMONIC = 'test test test test test test test test test test test junk';
+const MNEMONIC = (process.env.MNEMONIC?.trim() || DEFAULT_MNEMONIC);
 const UNLIMITED_BYTECODE_SIZE = process.env.UNLIMITED_BYTECODE_SIZE === 'true';
 
 // Prevent to load scripts before compilation and typechain
@@ -54,6 +56,28 @@ if (!SKIP_LOAD) {
 }
 
 require(`${path.join(__dirname, 'tasks/misc')}/set-bre.ts`);
+
+const IS_DEPLOYED = !!process.env.USE_DEPLOYED;
+
+const LOCALHOST_ACCOUNTS = IS_DEPLOYED
+  ? {
+      mnemonic: MNEMONIC,
+      path: MNEMONIC_PATH,
+      initialIndex: 0,
+      count: 20,
+    }
+  : [
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+      '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+      '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
+      '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a',
+      '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba',
+      '0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e',
+      '0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356',
+      '0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97',
+      '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6',
+    ];
 
 const getCommonNetworkConfig = (networkName: eNetwork, networkId: number) => ({
   url: NETWORKS_RPC_URL[networkName],
@@ -92,9 +116,14 @@ const buidlerConfig: HardhatUserConfig = {
       mainnet: process.env.ETHERSCAN_KEY || '',
       polygon: process.env.ETHERSCAN_POLYGON_KEY || '',
       avalanche: process.env.ETHERSCAN_SNOWTRACE_KEY || '',
+      arbitrumOne: process.env.ETHERSCAN_ARBITRUM_KEY || '',
+      arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_KEY || '',
     },
   },
 
+  gasReporter: {
+    enabled: process.env.REPORT_GAS === 'true',
+  },
   mocha: {
     timeout: 0,
   },
@@ -118,13 +147,15 @@ const buidlerConfig: HardhatUserConfig = {
     avalanche: getCommonNetworkConfig(eAvalancheNetwork.avalanche, 43114),
     fuji: getCommonNetworkConfig(eAvalancheNetwork.fuji, 43113),
     goerli: getCommonNetworkConfig(eEthereumNetwork.goerli, 5),
+    arbitrum: getCommonNetworkConfig(eArbitrumNetwork.arbitrum, 42161),
+    arbitrumSepolia: getCommonNetworkConfig(eArbitrumNetwork.arbitrumSepolia, 421614),
     hardhat: {
-      hardfork: 'berlin',
+      hardfork: 'cancun',
       blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
       gas: DEFAULT_BLOCK_GAS_LIMIT,
       gasPrice: 8000000000,
       allowUnlimitedContractSize: UNLIMITED_BYTECODE_SIZE,
-      chainId: BUIDLEREVM_CHAINID,
+      chainId: process.env.FORK === 'arbitrumSepolia' ? 421614 : BUIDLEREVM_CHAINID,
       throwOnTransactionFailures: true,
       throwOnCallFailures: true,
       accounts: accounts.map(({ secretKey, balance }: { secretKey: string; balance: string }) => ({
@@ -132,6 +163,29 @@ const buidlerConfig: HardhatUserConfig = {
         balance,
       })),
       forking: buildForkConfig(),
+      chains: {
+        421614: {
+          hardforkHistory: {
+            berlin: 0,
+            london: 0,
+            arrowGlacier: 0,
+            grayGlacier: 0,
+            merge: 0,
+            shanghai: 0,
+            cancun: 0,
+          },
+        },
+      },
+    },
+    buidlerevm: {
+      hardfork: 'berlin',
+      blockGasLimit: 9500000,
+      gas: 9500000,
+      gasPrice: 8000000000,
+      chainId: BUIDLEREVM_CHAINID,
+      throwOnTransactionFailures: true,
+      throwOnCallFailures: true,
+      url: 'http://localhost:8545',
     },
     buidlerevm_docker: {
       hardfork: 'berlin',
@@ -142,6 +196,11 @@ const buidlerConfig: HardhatUserConfig = {
       throwOnTransactionFailures: true,
       throwOnCallFailures: true,
       url: 'http://localhost:8545',
+    },
+    localhost: {
+      url: process.env.HARDHAT_NETWORK_URL || 'http://localhost:8545',
+      chainId: IS_DEPLOYED ? 421614 : 31337,
+      accounts: LOCALHOST_ACCOUNTS,
     },
     ganache: {
       url: 'http://ganache:8545',

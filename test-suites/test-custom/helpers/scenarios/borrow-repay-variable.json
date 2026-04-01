@@ -1,0 +1,563 @@
+{
+  "title": "LendingPool: Borrow/repay (variable rate)",
+  "description": "Test cases for variable rate borrow and repay with AGT, USDC, USDT. Stable borrow is disabled.",
+  "stories": [
+    {
+      "description": "User 2 deposits 1 USDC to account for rounding errors",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1",
+            "user": "2"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 AGT as collateral and borrows 50 USDC at variable rate",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "100",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "50",
+            "borrowRateMode": "variable",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 tries to repay 0 USDC (revert expected)",
+      "actions": [
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDC",
+            "amount": "0",
+            "user": "1",
+            "onBehalfOf": "1",
+            "borrowRateMode": "variable"
+          },
+          "expected": "revert",
+          "revertMessage": "Amount must be greater than 0"
+        }
+      ]
+    },
+    {
+      "description": "User 1 repays half of the borrowed USDC",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "50",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDC",
+            "amount": "25",
+            "user": "1",
+            "onBehalfOf": "1",
+            "borrowRateMode": "variable"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 tries to borrow more USDC than collateral allows (revert expected)",
+      "actions": [
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "900",
+            "borrowRateMode": "variable",
+            "user": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "There is not enough collateral to cover a new borrow"
+        }
+      ]
+    },
+    {
+      "description": "User 3 tries to repay on behalf of user 1 using uint(-1) (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "100",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "3"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "3",
+            "borrowRateMode": "variable",
+            "onBehalfOf": "1"
+          },
+          "expected": "revert",
+          "revertMessage": "To repay on behalf of an user an explicit amount to repay is needed"
+        }
+      ]
+    },
+    {
+      "description": "User 3 repays a small amount of USDC on behalf of user 1",
+      "actions": [
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDC",
+            "amount": "10",
+            "user": "3",
+            "borrowRateMode": "variable",
+            "onBehalfOf": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 repays the rest of the USDC debt",
+      "actions": [
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "1",
+            "onBehalfOf": "1",
+            "borrowRateMode": "variable"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 withdraws the deposited USDC plus interest",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "USDC",
+            "amount": "-1",
+            "user": "0"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 withdraws the collateral",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "AGT",
+            "amount": "-1",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 4 tries to borrow 100 USDC without any collateral (revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "5"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "5"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "5"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "100",
+            "borrowRateMode": "variable",
+            "user": "4"
+          },
+          "expected": "revert",
+          "revertMessage": "The collateral balance is 0"
+        }
+      ]
+    },
+    {
+      "description": "User 4 deposits 10 AGT as collateral and tries to borrow 500 USDC (not enough collateral, revert expected)",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "10",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "10",
+            "user": "4"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDC",
+            "amount": "500",
+            "borrowRateMode": "variable",
+            "user": "4"
+          },
+          "expected": "revert",
+          "revertMessage": "There is not enough collateral to cover a new borrow"
+        }
+      ]
+    },
+    {
+      "description": "User 4 withdraws the 10 AGT collateral",
+      "actions": [
+        {
+          "name": "withdraw",
+          "args": {
+            "reserve": "AGT",
+            "amount": "-1",
+            "user": "4"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 AGT, user 1 deposits 1000 USDT as collateral and borrows 10 AGT at variable rate",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "AGT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "AGT",
+            "amount": "10",
+            "borrowRateMode": "variable",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 1 repays the AGT borrow after one year",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "AGT",
+            "amount": "20",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "AGT",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "AGT",
+            "amount": "-1",
+            "user": "1",
+            "onBehalfOf": "1",
+            "borrowRateMode": "variable",
+            "timeTravel": "365"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 0 deposits 1000 USDT, user 1 deposits 1000 USDC as collateral and borrows 500 USDT at variable rate",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDT",
+            "amount": "1000",
+            "user": "0"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDC",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "deposit",
+          "args": {
+            "reserve": "USDC",
+            "amount": "1000",
+            "user": "1"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "borrow",
+          "args": {
+            "reserve": "USDT",
+            "amount": "500",
+            "borrowRateMode": "variable",
+            "user": "1"
+          },
+          "expected": "success"
+        }
+      ]
+    },
+    {
+      "description": "User 2 repays the USDT on behalf of user 1",
+      "actions": [
+        {
+          "name": "mint",
+          "args": {
+            "reserve": "USDT",
+            "amount": "600",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "approve",
+          "args": {
+            "reserve": "USDT",
+            "user": "2"
+          },
+          "expected": "success"
+        },
+        {
+          "name": "repay",
+          "args": {
+            "reserve": "USDT",
+            "amount": "500",
+            "user": "2",
+            "onBehalfOf": "1",
+            "borrowRateMode": "variable"
+          },
+          "expected": "success"
+        }
+      ]
+    }
+  ]
+}
