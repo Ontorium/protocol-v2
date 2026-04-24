@@ -31,4 +31,6 @@ contract LendingPoolStorage {
   uint256 internal _maxNumberOfReserves;
 
   mapping(address => bool) internal _liquidationWhitelist;
+
+  uint256 internal _reentrancyStatus;
 }

@@ -3,10 +3,12 @@ pragma solidity 0.6.12;
 
 import {Ownable} from '../dependencies/openzeppelin/contracts/Ownable.sol';
 import {IERC20} from '../dependencies/openzeppelin/contracts/IERC20.sol';
+import {SafeMath} from '../dependencies/openzeppelin/contracts/SafeMath.sol';
 
 import {IPriceOracleGetter} from '../interfaces/IPriceOracleGetter.sol';
 import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
 import {SafeERC20} from '../dependencies/openzeppelin/contracts/SafeERC20.sol';
+import {Errors} from '../protocol/libraries/helpers/Errors.sol';
 
 /// @title AaveOracle
 /// @author Aave
@@ -16,13 +18,16 @@ import {SafeERC20} from '../dependencies/openzeppelin/contracts/SafeERC20.sol';
 /// - Owned by the Aave governance system, allowed to add sources for assets, replace them
 ///   and change the fallbackOracle
 contract AaveOracle is IPriceOracleGetter, Ownable {
+  using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
   event BaseCurrencySet(address indexed baseCurrency, uint256 baseCurrencyUnit);
   event AssetSourceUpdated(address indexed asset, address indexed source);
   event FallbackOracleUpdated(address indexed fallbackOracle);
+  event AssetStaleTimeUpdated(address indexed asset, uint256 staleTime);
 
   mapping(address => IChainlinkAggregator) private assetsSources;
+  mapping(address => uint256) private _assetStaleTimes;
   IPriceOracleGetter private _fallbackOracle;
   address public immutable BASE_CURRENCY;
   uint256 public immutable BASE_CURRENCY_UNIT;
@@ -51,10 +56,10 @@ contract AaveOracle is IPriceOracleGetter, Ownable {
   /// @notice External function called by the Aave governance to set or replace sources of assets
   /// @param assets The addresses of the assets
   /// @param sources The address of the source of each asset
-  function setAssetSources(address[] calldata assets, address[] calldata sources)
-    external
-    onlyOwner
-  {
+  function setAssetSources(
+    address[] calldata assets,
+    address[] calldata sources
+  ) external onlyOwner {
     _setAssetsSources(assets, sources);
   }
 
@@ -63,6 +68,22 @@ contract AaveOracle is IPriceOracleGetter, Ownable {
   /// @param fallbackOracle The address of the fallbackOracle
   function setFallbackOracle(address fallbackOracle) external onlyOwner {
     _setFallbackOracle(fallbackOracle);
+  }
+
+  function setAssetStaleTimes(
+    address[] calldata assets,
+    uint256[] calldata staleTimes
+  ) external onlyOwner {
+    require(assets.length == staleTimes.length, 'INCONSISTENT_PARAMS_LENGTH');
+
+    for (uint256 i = 0; i < assets.length; i++) {
+      _assetStaleTimes[assets[i]] = staleTimes[i];
+      emit AssetStaleTimeUpdated(assets[i], staleTimes[i]);
+    }
+  }
+
+  function getAssetStaleTime(address asset) external view returns (uint256) {
+    return _assetStaleTimes[asset];
   }
 
   /// @notice Internal function to set the sources for each asset
@@ -87,15 +108,22 @@ contract AaveOracle is IPriceOracleGetter, Ownable {
   /// @param asset The asset address
   function getAssetPrice(address asset) public view override returns (uint256) {
     IChainlinkAggregator source = assetsSources[asset];
+    uint256 staleTime = _assetStaleTimes[asset];
 
     if (asset == BASE_CURRENCY) {
       return BASE_CURRENCY_UNIT;
     } else if (address(source) == address(0)) {
       return _fallbackOracle.getAssetPrice(asset);
     } else {
-      int256 price = IChainlinkAggregator(source).latestAnswer();
-      if (price > 0) {
-        return uint256(price);
+      (, int256 currentAnswer, , uint256 updatedAt, ) = source.latestRoundData();
+      if (staleTime > 0) {
+        require(updatedAt != 0, Errors.ORACLE_PRICE_STALE);
+        require(block.timestamp >= updatedAt, Errors.ORACLE_PRICE_STALE);
+        require(block.timestamp.sub(updatedAt) <= staleTime, Errors.ORACLE_PRICE_STALE);
+      }
+
+      if (currentAnswer > 0) {
+        return uint256(currentAnswer);
       } else {
         return _fallbackOracle.getAssetPrice(asset);
       }

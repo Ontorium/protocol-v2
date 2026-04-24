@@ -50,6 +50,8 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
   using SafeERC20 for IERC20;
 
   uint256 public constant LENDINGPOOL_REVISION = 0x4;
+  uint256 internal constant NOT_ENTERED = 1;
+  uint256 internal constant ENTERED = 2;
 
   modifier whenNotPaused() {
     _whenNotPaused();
@@ -59,6 +61,13 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
   modifier onlyLendingPoolConfigurator() {
     _onlyLendingPoolConfigurator();
     _;
+  }
+
+  modifier nonReentrant() {
+    require(_reentrancyStatus != ENTERED, 'REENTRANT_CALL');
+    _reentrancyStatus = ENTERED;
+    _;
+    _reentrancyStatus = NOT_ENTERED;
   }
 
   function _whenNotPaused() internal view {
@@ -88,6 +97,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     _maxStableRateBorrowSizePercent = 2500;
     _flashLoanPremiumTotal = 9;
     _maxNumberOfReserves = 128;
+    _reentrancyStatus = NOT_ENTERED;
   }
 
   /**
@@ -106,7 +116,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) external override whenNotPaused {
+  ) external override whenNotPaused nonReentrant {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
     ValidationLogic.validateDeposit(reserve, amount);
@@ -143,7 +153,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     address asset,
     uint256 amount,
     address to
-  ) external override whenNotPaused returns (uint256) {
+  ) external override whenNotPaused nonReentrant returns (uint256) {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
     address aToken = reserve.aTokenAddress;
@@ -204,7 +214,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     uint256 interestRateMode,
     uint16 referralCode,
     address onBehalfOf
-  ) external override whenNotPaused {
+  ) external override whenNotPaused nonReentrant {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
     _executeBorrow(
@@ -238,7 +248,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     uint256 amount,
     uint256 rateMode,
     address onBehalfOf
-  ) external override whenNotPaused returns (uint256) {
+  ) external override whenNotPaused nonReentrant returns (uint256) {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
     (uint256 stableDebt, uint256 variableDebt) = Helpers.getUserCurrentDebt(onBehalfOf, reserve);
@@ -428,7 +438,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     address user,
     uint256 debtToCover,
     bool receiveAToken
-  ) external override whenNotPaused {
+  ) external override whenNotPaused nonReentrant {
     address collateralManager = _addressesProvider.getLendingPoolCollateralManager();
 
     //solium-disable-next-line
@@ -869,7 +879,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       userConfig,
       _reservesList,
       _reservesCount,
-      oracle
+      address(_addressesProvider)
     );
 
     reserve.updateState();

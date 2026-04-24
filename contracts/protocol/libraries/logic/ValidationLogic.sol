@@ -14,6 +14,8 @@ import {UserConfiguration} from '../configuration/UserConfiguration.sol';
 import {Errors} from '../helpers/Errors.sol';
 import {Helpers} from '../helpers/Helpers.sol';
 import {IReserveInterestRateStrategy} from '../../../interfaces/IReserveInterestRateStrategy.sol';
+import {IPriceOracleSentinel} from '../../../interfaces/IPriceOracleSentinel.sol';
+import {ILendingPoolAddressesProvider} from '../../../interfaces/ILendingPoolAddressesProvider.sol';
 import {DataTypes} from '../types/DataTypes.sol';
 
 /**
@@ -32,6 +34,7 @@ library ValidationLogic {
 
   uint256 public constant REBALANCE_UP_LIQUIDITY_RATE_THRESHOLD = 4000;
   uint256 public constant REBALANCE_UP_USAGE_RATIO_THRESHOLD = 0.95 * 1e27; //usage ratio of 95%
+  uint256 public constant LIQUIDATION_SENTINEL_BYPASS_THRESHOLD = 0.95 ether;
 
   /**
    * @dev Validates a deposit action
@@ -114,7 +117,7 @@ library ValidationLogic {
    * @param reservesData The state of all the reserves
    * @param userConfig The state of the user for the specific reserve
    * @param reserves The addresses of all the active reserves
-   * @param oracle The price oracle
+   * @param addressesProvider The addresses provider used to resolve the oracle and sentinel
    */
 
   function validateBorrow(
@@ -129,9 +132,12 @@ library ValidationLogic {
     DataTypes.UserConfigurationMap storage userConfig,
     mapping(uint256 => address) storage reserves,
     uint256 reservesCount,
-    address oracle
+    address addressesProvider
   ) external view {
     ValidateBorrowLocalVars memory vars;
+    address oracle = ILendingPoolAddressesProvider(addressesProvider).getPriceOracle();
+    address priceOracleSentinel = ILendingPoolAddressesProvider(addressesProvider)
+      .getPriceOracleSentinel();
 
     (vars.isActive, vars.isFrozen, vars.borrowingEnabled, vars.stableRateBorrowingEnabled) = reserve
       .configuration
@@ -180,6 +186,12 @@ library ValidationLogic {
     require(
       vars.amountOfCollateralNeededETH <= vars.userCollateralBalanceETH,
       Errors.VL_COLLATERAL_CANNOT_COVER_NEW_BORROW
+    );
+
+    require(
+      priceOracleSentinel == address(0) ||
+        IPriceOracleSentinel(priceOracleSentinel).isBorrowAllowed(),
+      Errors.LP_PRICE_ORACLE_SENTINEL_CHECK_FAILED
     );
 
     /**
@@ -312,8 +324,10 @@ library ValidationLogic {
     require(isActive, Errors.VL_NO_ACTIVE_RESERVE);
 
     //if the usage ratio is below 95%, no rebalances are needed
-    uint256 totalDebt =
-      stableDebtToken.totalSupply().add(variableDebtToken.totalSupply()).wadToRay();
+    uint256 totalDebt = stableDebtToken
+      .totalSupply()
+      .add(variableDebtToken.totalSupply())
+      .wadToRay();
     uint256 availableLiquidity = IERC20(reserveAddress).balanceOf(aTokenAddress).wadToRay();
     uint256 usageRatio = totalDebt == 0 ? 0 : totalDebt.rayDiv(availableLiquidity.add(totalDebt));
 
@@ -321,8 +335,9 @@ library ValidationLogic {
     //then we allow rebalancing of the stable rate positions.
 
     uint256 currentLiquidityRate = reserve.currentLiquidityRate;
-    uint256 maxVariableBorrowRate =
-      IReserveInterestRateStrategy(reserve.interestRateStrategyAddress).getMaxVariableBorrowRate();
+    uint256 maxVariableBorrowRate = IReserveInterestRateStrategy(
+      reserve.interestRateStrategyAddress
+    ).getMaxVariableBorrowRate();
 
     require(
       usageRatio >= REBALANCE_UP_USAGE_RATIO_THRESHOLD &&
@@ -395,7 +410,8 @@ library ValidationLogic {
     DataTypes.UserConfigurationMap storage userConfig,
     uint256 userHealthFactor,
     uint256 userStableDebt,
-    uint256 userVariableDebt
+    uint256 userVariableDebt,
+    address priceOracleSentinel
   ) internal view returns (uint256, string memory) {
     if (
       !collateralReserve.configuration.getActive() || !principalReserve.configuration.getActive()
@@ -413,9 +429,8 @@ library ValidationLogic {
       );
     }
 
-    bool isCollateralEnabled =
-      collateralReserve.configuration.getLiquidationThreshold() > 0 &&
-        userConfig.isUsingAsCollateral(collateralReserve.id);
+    bool isCollateralEnabled = collateralReserve.configuration.getLiquidationThreshold() > 0 &&
+      userConfig.isUsingAsCollateral(collateralReserve.id);
 
     //if collateral isn't enabled as collateral by user, it cannot be liquidated
     if (!isCollateralEnabled) {
@@ -429,6 +444,17 @@ library ValidationLogic {
       return (
         uint256(Errors.CollateralManagerErrors.CURRRENCY_NOT_BORROWED),
         Errors.LPCM_SPECIFIED_CURRENCY_NOT_BORROWED_BY_USER
+      );
+    }
+
+    if (
+      priceOracleSentinel != address(0) &&
+      userHealthFactor >= LIQUIDATION_SENTINEL_BYPASS_THRESHOLD &&
+      !IPriceOracleSentinel(priceOracleSentinel).isLiquidationAllowed()
+    ) {
+      return (
+        uint256(Errors.CollateralManagerErrors.PRICE_ORACLE_SENTINEL_REJECTED),
+        Errors.LP_PRICE_ORACLE_SENTINEL_CHECK_FAILED
       );
     }
 
@@ -451,15 +477,14 @@ library ValidationLogic {
     uint256 reservesCount,
     address oracle
   ) internal view {
-    (, , , , uint256 healthFactor) =
-      GenericLogic.calculateUserAccountData(
-        from,
-        reservesData,
-        userConfig,
-        reserves,
-        reservesCount,
-        oracle
-      );
+    (, , , , uint256 healthFactor) = GenericLogic.calculateUserAccountData(
+      from,
+      reservesData,
+      userConfig,
+      reserves,
+      reservesCount,
+      oracle
+    );
 
     require(
       healthFactor >= GenericLogic.HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
