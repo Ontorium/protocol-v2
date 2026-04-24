@@ -50,6 +50,8 @@ export interface TestEnv {
   helpersContract: AaveProtocolDataProvider;
   weth: WETH9Mocked;
   aWETH: AToken;
+  oxau: MintableERC20;
+  aOXAU: AToken;
   agt: MintableERC20;
   aAGT: AToken;
   usdc: MintableERC20;
@@ -74,6 +76,8 @@ const testEnv: TestEnv = {
   oracle: {} as PriceOracle,
   weth: {} as WETH9Mocked,
   aWETH: {} as AToken,
+  oxau: {} as MintableERC20,
+  aOXAU: {} as AToken,
   agt: {} as MintableERC20,
   aAGT: {} as AToken,
   usdc: {} as MintableERC20,
@@ -149,14 +153,14 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
   const allTokens = await testEnv.helpersContract.getAllATokens();
   console.log('All aTokens:', allTokens);
 
-  // Try to find aTokens - may be 'aaAGT' or 'aAGT' depending on config
-  let aAGTAddress = allTokens.find((aToken) => aToken.symbol === 'aaAGT')?.tokenAddress;
+  // OXAU may appear with different aToken prefixes depending on config
+  let aOXAUAddress = allTokens.find((aToken) => aToken.symbol === 'aaOXAU')?.tokenAddress;
   let aUSDCAddress = allTokens.find((aToken) => aToken.symbol === 'aaUSDC')?.tokenAddress;
   let aUSDTAddress = allTokens.find((aToken) => aToken.symbol === 'aaUSDT')?.tokenAddress;
 
   // Fallback to 'aXXX' format if 'aaXXX' not found
-  if (!aAGTAddress) {
-    aAGTAddress = allTokens.find((aToken) => aToken.symbol.includes('AGT'))?.tokenAddress;
+  if (!aOXAUAddress) {
+    aOXAUAddress = allTokens.find((aToken) => aToken.symbol.includes('OXAU'))?.tokenAddress;
   }
   if (!aUSDCAddress) {
     aUSDCAddress = allTokens.find((aToken) => aToken.symbol.includes('USDC'))?.tokenAddress;
@@ -168,13 +172,16 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
   const reservesTokens = await testEnv.helpersContract.getAllReservesTokens();
   console.log('All reserves:', reservesTokens);
 
-  const agtAddress = reservesTokens.find((token) => token.symbol === 'AGT')?.tokenAddress;
+  const oxauAddress = reservesTokens.find((token) => token.symbol === 'OXAU')?.tokenAddress;
   const usdcAddress = reservesTokens.find((token) => token.symbol === 'USDC')?.tokenAddress;
   const usdtAddress = reservesTokens.find((token) => token.symbol === 'USDT')?.tokenAddress;
 
-  if (agtAddress && aAGTAddress) {
-    testEnv.agt = await getMintableERC20(agtAddress);
-    testEnv.aAGT = await getAToken(aAGTAddress);
+  if (oxauAddress && aOXAUAddress) {
+    testEnv.oxau = await getMintableERC20(oxauAddress);
+    testEnv.aOXAU = await getAToken(aOXAUAddress);
+    // Backward-compatible aliases for older AGT-named tests.
+    testEnv.agt = testEnv.oxau;
+    testEnv.aAGT = testEnv.aOXAU;
   }
 
   if (usdcAddress && aUSDCAddress) {
@@ -193,8 +200,9 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
     const networkName = DRE.network.name;
     const db = getDb();
 
-    if (agtAddress) {
-      db.set(`AGT.${networkName}`, { address: agtAddress }).write();
+    if (oxauAddress) {
+      db.set(`OXAU.${networkName}`, { address: oxauAddress }).write();
+      db.set(`AGT.${networkName}`, { address: oxauAddress }).write();
     }
     if (usdcAddress) {
       db.set(`USDC.${networkName}`, { address: usdcAddress }).write();

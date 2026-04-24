@@ -58,8 +58,8 @@ const LENDING_RATE_ORACLE_RATES_COMMON = CustomConfig.LendingRateOracleRatesComm
 const deployAllMockTokens = async (deployer: Signer) => {
   const tokens: { [symbol: string]: MockContract | MintableERC20 } = {};
 
-  // Deploy only the tokens we need: AGT, USDC, USDT
-  const customTokens = ['AGT', 'USDC', 'USDT'];
+  // Deploy only the tokens we need: OXAU, USDC, USDT
+  const customTokens = ['OXAU', 'USDC', 'USDT'];
 
   for (const tokenSymbol of customTokens) {
     let decimals = 18;
@@ -138,7 +138,7 @@ const buildTestEnv = async (deployer: Signer, secondaryWallet: Signer) => {
   await setInitialAssetPricesInOracle(
     ALL_ASSETS_INITIAL_PRICES,
     {
-      AGT: mockTokens.AGT.address,
+      OXAU: mockTokens.OXAU.address,
       USDC: mockTokens.USDC.address,
       USDT: mockTokens.USDT.address,
       USD: USD_ADDRESS,

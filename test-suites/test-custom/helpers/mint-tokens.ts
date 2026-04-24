@@ -381,7 +381,7 @@ export async function setAggregatorPrice(oracle: any, asset: string, newPrice: s
   );
 
   // Deploy MockAggregator with the new price
-  const mockAggregator = await MockAggregatorFactory.deploy(newPrice);
+  const mockAggregator = await MockAggregatorFactory.deploy(newPrice, 8);
   await mockAggregator.deployed();
 
   // Update oracle to use the new MockAggregator
