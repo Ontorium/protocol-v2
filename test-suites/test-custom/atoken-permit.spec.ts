@@ -19,48 +19,48 @@ async function signPermitFromSigner(signer: any, msgParams: any) {
 
 makeSuite('AToken: Permit', (testEnv: TestEnv) => {
   it('Checks the domain separator', async () => {
-    const { aAGT } = testEnv;
-    const separator = await aAGT.DOMAIN_SEPARATOR();
+    const { aOXAU } = testEnv;
+    const separator = await aOXAU.DOMAIN_SEPARATOR();
 
     const domain = {
-      name: await aAGT.name(),
+      name: await aOXAU.name(),
       version: '1',
       chainId: DRE.network.config.chainId,
-      verifyingContract: aAGT.address,
+      verifyingContract: aOXAU.address,
     };
     const domainSeparator = _TypedDataEncoder.hashDomain(domain);
 
     expect(separator).to.be.equal(domainSeparator, 'Invalid domain separator');
   });
 
-  it('Get aAGT for tests', async () => {
-    const { agt, pool, deployer } = testEnv;
+  it('Get aOXAU for tests', async () => {
+    const { oxau, pool, deployer } = testEnv;
     const amount = parseEther('20000');
 
-    await mintTokens(agt, deployer.address, amount, deployer.signer);
-    await agt.approve(pool.address, amount);
+    await mintTokens(oxau, deployer.address, amount, deployer.signer);
+    await oxau.approve(pool.address, amount);
 
     await waitForTx(
-      await pool.deposit(agt.address, amount, deployer.address, 0)
+      await pool.deposit(oxau.address, amount, deployer.address, 0)
     );
   });
 
   it('Reverts submitting a permit with 0 expiration', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
-    const tokenName = await aAGT.name();
+    const tokenName = await aOXAU.name();
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
 
     const deadline = 0;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = parseEther('2').toString();
 
     // buildPermitParams expects (deadline, value) at the end (same as original tests)
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
       tokenName,
       owner.address,
@@ -70,7 +70,7 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
+    expect((await aOXAU.allowance(owner.address, spender.address)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
@@ -78,32 +78,32 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
-      aAGT
+      aOXAU
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
 
-    expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
+    expect((await aOXAU.allowance(owner.address, spender.address)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_AFTER_PERMIT'
     );
   });
 
   it('Submits a permit with maximum expiration length', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = parseEther('2').toString();
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -111,7 +111,7 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
       permitAmount
     );
 
-    expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
+    expect((await aOXAU.allowance(owner.address, spender.address)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
@@ -119,29 +119,29 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await waitForTx(
-      await aAGT
+      await aOXAU
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     );
 
-    expect((await aAGT._nonces(owner.address)).toNumber()).to.be.equal(1);
+    expect((await aOXAU._nonces(owner.address)).toNumber()).to.be.equal(1);
   });
 
   it('Cancels the previous permit', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = '0';
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -151,27 +151,27 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
 
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
-    expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
+    expect((await aOXAU.allowance(owner.address, spender.address)).toString()).to.be.equal(
       parseEther('2').toString(),
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
 
     await waitForTx(
-      await aAGT
+      await aOXAU
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     );
 
-    expect((await aAGT.allowance(owner.address, spender.address)).toString()).to.be.equal(
+    expect((await aOXAU.allowance(owner.address, spender.address)).toString()).to.be.equal(
       permitAmount,
       'INVALID_ALLOWANCE_AFTER_PERMIT'
     );
 
-    expect((await aAGT._nonces(owner.address)).toNumber()).to.be.equal(2);
+    expect((await aOXAU._nonces(owner.address)).toNumber()).to.be.equal(2);
   });
 
   it('Tries to submit a permit with invalid nonce', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
@@ -182,9 +182,9 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -195,27 +195,27 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
-      aAGT
+      aOXAU
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
   });
 
   it('Tries to submit a permit with invalid expiration (previous to the current block)', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = '1'; // in the past
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = '0';
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -226,27 +226,27 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
-      aAGT
+      aOXAU
         .connect(spender.signer)
         .permit(owner.address, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
   });
 
   it('Tries to submit a permit with invalid signature', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = '0';
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -257,27 +257,27 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
-      aAGT
+      aOXAU
         .connect(spender.signer)
         .permit(owner.address, ZERO_ADDRESS, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
   });
 
   it('Tries to submit a permit with invalid owner', async () => {
-    const { aAGT, users } = testEnv;
+    const { aOXAU, users } = testEnv;
     const owner = users[0];
     const spender = users[1];
 
     const chainId = DRE.network.config.chainId || BUIDLEREVM_CHAINID;
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aAGT._nonces(owner.address)).toNumber();
+    const nonce = (await aOXAU._nonces(owner.address)).toNumber();
     const permitAmount = '0';
 
     const msgParams = buildPermitParams(
       chainId,
-      aAGT.address,
+      aOXAU.address,
       '1',
-      await aAGT.name(),
+      await aOXAU.name(),
       owner.address,
       spender.address,
       nonce,
@@ -288,7 +288,7 @@ makeSuite('AToken: Permit', (testEnv: TestEnv) => {
     const { v, r, s } = await signPermitFromSigner(owner.signer, msgParams);
 
     await expect(
-      aAGT
+      aOXAU
         .connect(spender.signer)
         .permit(ZERO_ADDRESS, spender.address, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_OWNER');

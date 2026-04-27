@@ -177,7 +177,7 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   });
 
   it('Flash loan', async () => {
-    const { usdc, pool, agt, users, configurator, addressesProvider } = testEnv;
+    const { usdc, pool, oxau, users, configurator, addressesProvider } = testEnv;
 
     if (!_mockFlashLoanReceiver) {
       throw new Error('MockFlashLoanReceiver not initialized');
@@ -198,7 +198,7 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           caller.address,
@@ -213,35 +213,33 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   });
 
   it('Liquidation call', async () => {
-    const { users, pool, usdc, oracle, agt, configurator, helpersContract, addressesProvider } = testEnv;
+    const { users, pool, usdc, oracle, oxau, configurator, helpersContract, addressesProvider } = testEnv;
     const depositor = users[3];
     const borrower = users[4];
 
     //mints USDC to depositor
-    await mintTokens(usdc, depositor.address, await convertToCurrencyDecimals(usdc.address, '1000'), depositor.signer);
+    await mintTokens(usdc, depositor.address, await convertToCurrencyDecimals(usdc.address, '2000'), depositor.signer);
 
     //approve protocol to access depositor wallet
     await usdc.connect(depositor.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
-    //user 3 deposits 1000 USDC
-    const amountUSDCtoDeposit = await convertToCurrencyDecimals(usdc.address, '1000');
+    const amountUSDCtoDeposit = await convertToCurrencyDecimals(usdc.address, '2000');
 
     await pool
       .connect(depositor.signer)
       .deposit(usdc.address, amountUSDCtoDeposit, depositor.address, '0');
 
-    //user 4 deposits 100 AGT
-    const amountAGTtoDeposit = await convertToCurrencyDecimals(agt.address, '100');
+    const amountOXAUToDeposit = await convertToCurrencyDecimals(oxau.address, '10');
 
-    //mints AGT to borrower
-    await mintTokens(agt, borrower.address, amountAGTtoDeposit, borrower.signer);
+    //mints OXAU to borrower
+    await mintTokens(oxau, borrower.address, amountOXAUToDeposit, borrower.signer);
 
     //approve protocol to access borrower wallet
-    await agt.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await oxau.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
     await pool
       .connect(borrower.signer)
-      .deposit(agt.address, amountAGTtoDeposit, borrower.address, '0');
+      .deposit(oxau.address, amountOXAUToDeposit, borrower.address, '0');
 
     //user 4 borrows
     const userGlobalData = await pool.getUserAccountData(borrower.address);
@@ -266,7 +264,7 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
 
     //mints usdc to the liquidator
     const { deployer } = testEnv;
-    await mintTokens(usdc, deployer.address, await convertToCurrencyDecimals(usdc.address, '1000'), deployer.signer);
+    await mintTokens(usdc, deployer.address, await convertToCurrencyDecimals(usdc.address, '2000'), deployer.signer);
     await usdc.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
     const userReserveDataBefore = await helpersContract.getUserReserveData(
@@ -284,7 +282,7 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
 
     // Do liquidation
     await expect(
-      pool.liquidationCall(agt.address, usdc.address, borrower.address, amountToLiquidate, true)
+      pool.liquidationCall(oxau.address, usdc.address, borrower.address, amountToLiquidate, true)
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool
@@ -293,15 +291,15 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   });
 
   it('SwapBorrowRateMode should fail because pool is paused', async () => {
-    const { pool, agt, usdc, usdt, users, configurator, addressesProvider } = testEnv;
+    const { pool, oxau, usdc, usdt, users, configurator, addressesProvider } = testEnv;
     const user = users[1];
-    const amountAGTToDeposit = parseEther('100');
+    const amountOXAUToDeposit = parseEther('100');
     const amountUSDTToDeposit = parseUnits('1000', 6);
     const amountToBorrow = parseUnits('65', 6);
 
-    await mintTokens(agt, user.address, amountAGTToDeposit, user.signer);
-    await agt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
-    await pool.connect(user.signer).deposit(agt.address, amountAGTToDeposit, user.address, '0');
+    await mintTokens(oxau, user.address, amountOXAUToDeposit, user.signer);
+    await oxau.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await pool.connect(user.signer).deposit(oxau.address, amountOXAUToDeposit, user.address, '0');
 
     await mintTokens(usdt, user.address, amountUSDTToDeposit, user.signer);
     await usdt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
@@ -340,20 +338,20 @@ makeSuite('Pausable Pool', (testEnv: TestEnv) => {
   });
 
   it('setUserUseReserveAsCollateral', async () => {
-    const { pool, agt, users, configurator, addressesProvider } = testEnv;
+    const { pool, oxau, users, configurator, addressesProvider } = testEnv;
     const user = users[1];
 
-    const amountAGTToDeposit = parseEther('10');
-    await mintTokens(agt, user.address, amountAGTToDeposit, user.signer);
-    await agt.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
-    await pool.connect(user.signer).deposit(agt.address, amountAGTToDeposit, user.address, '0');
+    const amountOXAUToDeposit = parseEther('10');
+    await mintTokens(oxau, user.address, amountOXAUToDeposit, user.signer);
+    await oxau.connect(user.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await pool.connect(user.signer).deposit(oxau.address, amountOXAUToDeposit, user.address, '0');
 
     // Pause pool (admin only)
     const adminSigner = await getEmergencyAdminSigner(addressesProvider);
     await configurator.connect(adminSigner).setPoolPause(true);
 
     await expect(
-      pool.connect(user.signer).setUserUseReserveAsCollateral(agt.address, false)
+      pool.connect(user.signer).setUserUseReserveAsCollateral(oxau.address, false)
     ).revertedWith(LP_IS_PAUSED);
 
     // Unpause pool

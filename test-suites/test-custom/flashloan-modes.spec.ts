@@ -13,7 +13,7 @@ import {
 } from '../../helpers/contracts-getters';
 import { DRE, waitForTx } from '../../helpers/misc-utils';
 import { mintTokens } from './helpers/mint-tokens';
-import { strategyAGT, strategyUSDC, strategyUSDT } from '../../markets/custom/reservesConfigs';
+import { strategyOXAU, strategyUSDC, strategyUSDT } from '../../markets/custom/reservesConfigs';
 
 const { expect } = require('chai');
 
@@ -25,7 +25,7 @@ const { expect } = require('chai');
  * Mode 2: If not repaid, converts to variable debt (requires collateral/allowance)
  *
  * Custom Market Config:
- * - AGT: LTV 65%, Liquidation Threshold 75%, stable borrow DISABLED
+ * - OXAU: LTV 65%, Liquidation Threshold 75%, stable borrow DISABLED
  * - USDC: LTV 75%, Liquidation Threshold 88%, stable borrow DISABLED
  * - USDT: LTV 75%, Liquidation Threshold 88%, stable borrow DISABLED
  */
@@ -40,7 +40,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   } = ProtocolErrors;
 
   // Constants for LTV verification (from reservesConfigs.ts)
-  const AGT_LTV = 6500; // 65%
+  const OXAU_LTV = 6500; // 65%
   const USDC_LTV = 7500; // 75%
   const USDT_LTV = 7500; // 75%
 
@@ -61,13 +61,13 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // Setup: Provide liquidity for all tokens
   // ============================================
   describe('Setup: Provide Liquidity', () => {
-    it('Deployer deposits AGT liquidity (10000 AGT)', async () => {
-      const { pool, agt, deployer } = testEnv;
+    it('Deployer deposits OXAU liquidity (10000 OXAU)', async () => {
+      const { pool, oxau, deployer } = testEnv;
       const amount = ethers.utils.parseEther('10000');
 
-      await mintTokens(agt, deployer.address, amount, deployer.signer);
-      await agt.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
-      await waitForTx(await pool.deposit(agt.address, amount, deployer.address, '0'));
+      await mintTokens(oxau, deployer.address, amount, deployer.signer);
+      await oxau.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+      await waitForTx(await pool.deposit(oxau.address, amount, deployer.address, '0'));
     });
 
     it('Deployer deposits USDC liquidity (10000 USDC)', async () => {
@@ -93,22 +93,22 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // Mode 0 Tests: Must repay immediately
   // ============================================
   describe('Mode 0: Immediate Repayment Required', () => {
-    it('Mode 0 AGT flashloan - repays correctly with premium', async () => {
-      const { pool, agt, deployer, helpersContract } = testEnv;
+    it('Mode 0 OXAU flashloan - repays correctly with premium', async () => {
+      const { pool, oxau, deployer, helpersContract } = testEnv;
 
       const flashAmount = ethers.utils.parseEther('100');
       const premium = flashAmount.mul(9).div(10000); // 0.09%
 
       // Provide premium to receiver
-      await mintTokens(agt, _mockFlashLoanReceiver.address, premium.mul(2), deployer.signer);
+      await mintTokens(oxau, _mockFlashLoanReceiver.address, premium.mul(2), deployer.signer);
       await _mockFlashLoanReceiver.setFailExecutionTransfer(false);
 
-      const reserveBefore = await helpersContract.getReserveData(agt.address);
+      const reserveBefore = await helpersContract.getReserveData(oxau.address);
 
       await waitForTx(
         await pool.flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [0], // Mode 0
           _mockFlashLoanReceiver.address,
@@ -117,7 +117,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
         )
       );
 
-      const reserveAfter = await helpersContract.getReserveData(agt.address);
+      const reserveAfter = await helpersContract.getReserveData(oxau.address);
 
       // Liquidity should increase by premium
       expect(reserveAfter.availableLiquidity.sub(reserveBefore.availableLiquidity)).to.be.gte(premium);
@@ -177,8 +177,8 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
       expect(reserveAfter.availableLiquidity.sub(reserveBefore.availableLiquidity)).to.be.gte(premium);
     });
 
-    it('Mode 0 flashloan - reverts if not repaid (AGT)', async () => {
-      const { pool, agt, users } = testEnv;
+    it('Mode 0 flashloan - reverts if not repaid (OXAU)', async () => {
+      const { pool, oxau, users } = testEnv;
       const caller = users[0];
 
       await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
@@ -186,7 +186,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
       await expect(
         pool.connect(caller.signer).flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [ethers.utils.parseEther('100')],
           [0],
           caller.address,
@@ -220,8 +220,8 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // Mode 1 Tests: Stable Debt (ALL DISABLED in Custom Market)
   // ============================================
   describe('Mode 1: Stable Debt Conversion (All Disabled)', () => {
-    it('Mode 1 AGT flashloan - reverts because stable borrow is disabled', async () => {
-      const { pool, agt, usdc, users } = testEnv;
+    it('Mode 1 OXAU flashloan - reverts because stable borrow is disabled', async () => {
+      const { pool, oxau, usdc, users } = testEnv;
       const caller = users[1];
 
       // Setup collateral
@@ -237,8 +237,8 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
       await expect(
         pool.connect(caller.signer).flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
-          [ethers.utils.parseEther('10')],
+          [oxau.address],
+          [ethers.utils.parseEther('4')],
           [1], // Mode 1 - stable
           caller.address,
           '0x10',
@@ -248,15 +248,15 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
     });
 
     it('Mode 1 USDC flashloan - reverts because stable borrow is disabled', async () => {
-      const { pool, usdc, agt, users } = testEnv;
+      const { pool, usdc, oxau, users } = testEnv;
       const caller = users[2];
 
-      // Setup collateral with AGT
+      // Setup collateral with OXAU
       const collateralAmount = ethers.utils.parseEther('1000');
-      await mintTokens(agt, caller.address, collateralAmount, caller.signer);
-      await agt.connect(caller.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+      await mintTokens(oxau, caller.address, collateralAmount, caller.signer);
+      await oxau.connect(caller.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
       await waitForTx(
-        await pool.connect(caller.signer).deposit(agt.address, collateralAmount, caller.address, '0')
+        await pool.connect(caller.signer).deposit(oxau.address, collateralAmount, caller.address, '0')
       );
 
       await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
@@ -307,22 +307,22 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // ============================================
   describe('Mode 2: Variable Debt Conversion - All Collateral/Borrow Combinations', () => {
 
-    // AGT as Collateral
-    describe('AGT Collateral (LTV 65%)', () => {
-      it('AGT collateral -> borrow USDT via Mode 2 flashloan', async () => {
-        const { pool, agt, usdt, users, helpersContract } = testEnv;
-        // Use users[2] who already deposited AGT collateral in Mode 1 test
+    // OXAU as Collateral
+    describe('OXAU Collateral (LTV 65%)', () => {
+      it('OXAU collateral -> borrow USDT via Mode 2 flashloan', async () => {
+        const { pool, oxau, usdt, users, helpersContract } = testEnv;
+        // Use users[2] who already deposited OXAU collateral in Mode 1 test
         const caller = users[2];
 
         // Verify collateral exists from Mode 1 test
         const userDataBefore = await pool.getUserAccountData(caller.address);
         expect(userDataBefore.totalCollateralETH).to.be.gt(0);
-        console.log('AGT Collateral ETH value:', userDataBefore.totalCollateralETH.toString());
+        console.log('OXAU Collateral ETH value:', userDataBefore.totalCollateralETH.toString());
         console.log('Available borrows ETH:', userDataBefore.availableBorrowsETH.toString());
 
         await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-        // Borrow USDT with AGT collateral (users[2] has AGT collateral)
+        // Borrow USDT with OXAU collateral (users[2] has OXAU collateral)
         const borrowAmount = await convertToCurrencyDecimals(usdt.address, '100');
 
         await waitForTx(
@@ -344,10 +344,10 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
         expect(debt).to.be.eq(borrowAmount);
       });
 
-      it('AGT collateral -> exceeds LTV, reverts (borrow too much USDC)', async () => {
-        const { pool, agt, users } = testEnv;
+      it('OXAU collateral -> exceeds LTV, reverts (borrow too much USDC)', async () => {
+        const { pool, oxau, users } = testEnv;
         // Use users[3] who already deposited USDC collateral in Mode 1 test
-        // Their collateral is 1000 USDC which can't cover 10000 AGT borrow
+        // Their collateral is 1000 USDC which can't cover 10000 OXAU borrow
         const caller = users[3];
 
         // Verify collateral exists but is limited
@@ -356,13 +356,13 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
         await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-        // Try to borrow way more than LTV allows (borrow AGT, not USDC since collateral is USDC)
+        // Try to borrow way more than LTV allows (borrow OXAU, not USDC since collateral is USDC)
         const excessiveBorrow = ethers.utils.parseEther('10000');
 
         await expect(
           pool.connect(caller.signer).flashLoan(
             _mockFlashLoanReceiver.address,
-            [agt.address],
+            [oxau.address],
             [excessiveBorrow],
             [2],
             caller.address,
@@ -375,8 +375,8 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
     // USDC as Collateral
     describe('USDC Collateral (LTV 75%)', () => {
-      it('USDC collateral -> borrow AGT via Mode 2 flashloan', async () => {
-        const { pool, agt, users, helpersContract } = testEnv;
+      it('USDC collateral -> borrow OXAU via Mode 2 flashloan', async () => {
+        const { pool, oxau, users, helpersContract } = testEnv;
         // Use users[1] who already deposited USDC collateral in Mode 1 test
         const caller = users[1];
 
@@ -388,13 +388,13 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
         await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-        // Borrow AGT with USDC collateral (users[1] has USDC collateral)
-        const borrowAmount = ethers.utils.parseEther('50');
+        // Borrow OXAU with USDC collateral (users[1] has USDC collateral)
+        const borrowAmount = ethers.utils.parseEther('4');
 
         await waitForTx(
           await pool.connect(caller.signer).flashLoan(
             _mockFlashLoanReceiver.address,
-            [agt.address],
+            [oxau.address],
             [borrowAmount],
             [2],
             caller.address,
@@ -403,7 +403,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
           )
         );
 
-        const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+        const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
         const debtToken = await getVariableDebtToken(variableDebtTokenAddress);
         const debt = await debtToken.balanceOf(caller.address);
         expect(debt).to.be.eq(borrowAmount);
@@ -411,7 +411,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
       it('USDC collateral -> borrow USDT via Mode 2 flashloan', async () => {
         const { pool, usdt, users, helpersContract } = testEnv;
-        // Use users[1] who has USDC collateral and already borrowed AGT
+        // Use users[1] who has USDC collateral and already borrowed OXAU
         // Still has ~700 ETH available borrows
         const caller = users[1];
 
@@ -443,26 +443,25 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
         expect(debt).to.be.eq(borrowAmount);
       });
 
-      it('USDC has higher LTV (75%) than AGT (65%) - can borrow more relative to collateral', async () => {
-        const { pool, usdc, agt, users, helpersContract } = testEnv;
+      it('USDC has higher LTV (75%) than OXAU (65%)', async () => {
+        const { pool, usdc, oxau, users, helpersContract } = testEnv;
 
         // Compare borrowing power for same collateral value
         const config = await helpersContract.getReserveConfigurationData(usdc.address);
         expect(config.ltv).to.be.eq(USDC_LTV);
 
-        const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
-        expect(agtConfig.ltv).to.be.eq(AGT_LTV);
+        const oxauConfig = await helpersContract.getReserveConfigurationData(oxau.address);
+        expect(oxauConfig.ltv).to.be.eq(OXAU_LTV);
 
-        // USDC LTV (75%) > AGT LTV (65%)
-        expect(config.ltv).to.be.gt(agtConfig.ltv);
+        expect(config.ltv).to.be.gt(oxauConfig.ltv);
       });
     });
 
-    // AGT Collateral - additional tests
-    describe('AGT Collateral - Additional Tests', () => {
-      it('AGT collateral -> borrow AGT via Mode 2 flashloan (same asset)', async () => {
-        const { pool, agt, users, helpersContract } = testEnv;
-        // Use users[2] who has AGT collateral and already borrowed USDT
+    // OXAU Collateral - additional tests
+    describe('OXAU Collateral - Additional Tests', () => {
+      it('OXAU collateral -> borrow OXAU via Mode 2 flashloan (same asset)', async () => {
+        const { pool, oxau, users, helpersContract } = testEnv;
+        // Use users[2] who has OXAU collateral and already borrowed USDT
         // Test borrowing the same asset as collateral
         const caller = users[2];
 
@@ -473,13 +472,13 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
         await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-        // Borrow small amount of AGT with AGT collateral
+        // Borrow small amount of OXAU with OXAU collateral
         const borrowAmount = ethers.utils.parseEther('50');
 
         try {
           await pool.connect(caller.signer).callStatic.flashLoan(
             _mockFlashLoanReceiver.address,
-            [agt.address],
+            [oxau.address],
             [borrowAmount],
             [2],
             caller.address,
@@ -499,7 +498,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
         await waitForTx(
           await pool.connect(caller.signer).flashLoan(
             _mockFlashLoanReceiver.address,
-            [agt.address],
+            [oxau.address],
             [borrowAmount],
             [2],
             caller.address,
@@ -508,7 +507,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
           )
         );
 
-        const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+        const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
         const debtToken = await getVariableDebtToken(variableDebtTokenAddress);
         const debt = await debtToken.balanceOf(caller.address);
         expect(debt).to.be.eq(borrowAmount);
@@ -517,8 +516,8 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
     // No Collateral - Should Fail
     describe('No Collateral - Mode 2 Reverts', () => {
-      it('Mode 2 without collateral reverts (AGT)', async () => {
-        const { pool, agt, users } = testEnv;
+      it('Mode 2 without collateral reverts (OXAU)', async () => {
+        const { pool, oxau, users } = testEnv;
         const callerNoCollateral = users[11];
 
         await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
@@ -526,7 +525,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
         await expect(
           pool.connect(callerNoCollateral.signer).flashLoan(
             _mockFlashLoanReceiver.address,
-            [agt.address],
+            [oxau.address],
             [ethers.utils.parseEther('10')],
             [2],
             callerNoCollateral.address,
@@ -562,7 +561,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // ============================================
   describe('Mode 2: Credit Delegation (onBehalfOf)', () => {
     it('Mode 2 flashloan onBehalfOf without allowance reverts', async () => {
-      const { pool, agt, users } = testEnv;
+      const { pool, oxau, users } = testEnv;
       const caller = users[4]; // Different user as caller
       // Use users[3] who already has USDC collateral from Mode 1 test
       const onBehalfOf = users[3];
@@ -574,12 +573,12 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
 
       await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-      // Caller tries to flashloan on behalf without delegation (borrow AGT with USDC collateral)
+      // Caller tries to flashloan on behalf without delegation (borrow OXAU with USDC collateral)
       await expect(
         pool.connect(caller.signer).flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
-          [ethers.utils.parseEther('10')],
+          [oxau.address],
+          [ethers.utils.parseEther('4')],
           [2],
           onBehalfOf.address, // onBehalfOf
           '0x10',
@@ -589,15 +588,15 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
     });
 
     it('Mode 2 flashloan onBehalfOf with allowance succeeds', async () => {
-      const { pool, agt, users, helpersContract } = testEnv;
+      const { pool, oxau, users, helpersContract } = testEnv;
       const caller = users[4];
       // Use users[3] who already has USDC collateral from Mode 1 test
       const onBehalfOf = users[3];
 
-      const flashAmount = ethers.utils.parseEther('10');
+      const flashAmount = ethers.utils.parseEther('4');
 
-      // OnBehalfOf delegates borrow allowance for AGT
-      const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+      // OnBehalfOf delegates borrow allowance for OXAU
+      const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
       const debtToken = await getVariableDebtToken(variableDebtTokenAddress);
       await debtToken.connect(onBehalfOf.signer).approveDelegation(caller.address, flashAmount);
 
@@ -606,7 +605,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
       try {
         await pool.connect(caller.signer).callStatic.flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           onBehalfOf.address,
@@ -626,7 +625,7 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
       await waitForTx(
         await pool.connect(caller.signer).flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           onBehalfOf.address,
@@ -648,10 +647,10 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
   // LTV Comparison Tests
   // ============================================
   describe('LTV Configuration Verification', () => {
-    it('Verifies AGT LTV is 65%', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.ltv).to.be.eq(strategyAGT.baseLTVAsCollateral);
+    it('Verifies OXAU LTV is 65%', async () => {
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.ltv).to.be.eq(strategyOXAU.baseLTVAsCollateral);
     });
 
     it('Verifies USDC LTV is 75%', async () => {
@@ -667,9 +666,9 @@ makeSuite('FlashLoan Modes - Comprehensive Collateral/Borrow Combinations', (tes
     });
 
     it('Verifies all tokens have stable borrow disabled', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+      const agtConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
       const usdtConfig = await helpersContract.getReserveConfigurationData(usdt.address);
 

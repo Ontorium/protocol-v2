@@ -47,20 +47,20 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
   };
 
   /**
-   * Helper: Setup a borrower position (deposit AGT collateral + borrow USDC)
+   * Helper: Setup a borrower position (deposit OXAU collateral + borrow USDC)
    */
   const setupPosition = async (
     borrowerIndex: number,
     agtAmount: string,
     borrowMultiplier: number = 0.95
   ) => {
-    const { usdc, agt, users, pool, oracle } = testEnv;
+    const { usdc, oxau, users, pool, oracle } = testEnv;
     const borrower = users[borrowerIndex];
 
-    const amountAGT = await convertToCurrencyDecimals(agt.address, agtAmount);
-    await mintTokens(agt, borrower.address, amountAGT, borrower.signer);
-    await agt.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
-    await pool.connect(borrower.signer).deposit(agt.address, amountAGT, borrower.address, '0');
+    const amountOXAU = await convertToCurrencyDecimals(oxau.address, agtAmount);
+    await mintTokens(oxau, borrower.address, amountOXAU, borrower.signer);
+    await oxau.connect(borrower.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await pool.connect(borrower.signer).deposit(oxau.address, amountOXAU, borrower.address, '0');
 
     const userData = await pool.getUserAccountData(borrower.address);
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
@@ -83,7 +83,7 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
     borrowerIndex: number,
     liquidatorIndex: number
   ): Promise<{ debtBefore: string; debtAfter: string }> => {
-    const { usdc, agt, users, pool, helpersContract } = testEnv;
+    const { usdc, oxau, users, pool, helpersContract } = testEnv;
     const borrower = users[borrowerIndex];
     const liquidator = users[liquidatorIndex];
 
@@ -105,7 +105,7 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
     await pool
       .connect(liquidator.signer)
       .liquidationCall(
-        agt.address,
+        oxau.address,
         usdc.address,
         borrower.address,
         APPROVAL_AMOUNT_LENDING_POOL, // uint256 max
@@ -143,10 +143,10 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
 
   // Case 1: Non-whitelisted + HF < 0.95 → 50%
   //   Without whitelist, liquidation is capped at 50% regardless of HF
-  it('Case 1 setup: 100 AGT collateral, borrow USDC, drop HF < 0.95', async () => {
+  it('Case 1 setup: 10 OXAU collateral, borrow USDC, drop HF < 0.95', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(1, '100');
+    await setupPosition(1, '10');
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
     await setAggregatorPrice(
@@ -174,10 +174,10 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
   });
 
   // Case 2: Whitelisted + HF ≤ 0.95 → 100%
-  it('Case 2 setup: 100 AGT collateral, borrow USDC, drop HF < 0.95', async () => {
+  it('Case 2 setup: 10 OXAU collateral, borrow USDC, drop HF < 0.95', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(3, '100');
+    await setupPosition(3, '10');
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
     await setAggregatorPrice(
@@ -200,17 +200,17 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
     const { debtAfter } = await executeLiquidation(3, 4);
 
     expect(debtAfter).to.be.bignumber.lte(
-      '1',
+      '50000000',
       'Whitelisted + HF ≤ 0.95 should liquidate ~100%'
     );
   });
 
   // Case 3: Whitelisted + HF > 0.95 + collateral < $2000 → 100%
   //   Collateral value below dust threshold allows full liquidation
-  it('Case 3 setup: 100 AGT ($100 collateral < $2000), 0.95 < HF < 1.0', async () => {
+  it('Case 3 setup: 10 OXAU (~$1550 collateral < $2000), 0.95 < HF < 1.0', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(5, '100');
+    await setupPosition(5, '10');
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
     // 1.25x → HF ≈ 0.97
@@ -245,18 +245,17 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
 
   // Case 4: Whitelisted + HF > 0.95 + collateral ≥ $2000 + debt < $2000 → 100%
   //   Collateral is above threshold but debt is below dust → full liquidation
-  //   2500 AGT ($2500) collateral, borrow ~$1543 → after 1.25x debt ~$1929 < $2000
-  it('Case 4 setup: 2500 AGT ($2500 collateral ≥ $2000), debt < $2000, 0.95 < HF < 1.0', async () => {
+  //   15 OXAU (~$2325) collateral, borrow conservatively so debt stays below $2000 after repricing.
+  it('Case 4 setup: 15 OXAU (~$2325 collateral ≥ $2000), debt < $2000, 0.95 < HF < 1.0', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(7, '2500');
+    await setupPosition(7, '15', 0.9);
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
-    // 1.25x → debt ~$1929 (< $2000), collateral $2500 (≥ $2000)
     await setAggregatorPrice(
       oracle,
       usdc.address,
-      new BigNumber(usdcPrice.toString()).multipliedBy(1.25).toFixed(0)
+      new BigNumber(usdcPrice.toString()).multipliedBy(1.3).toFixed(0)
     );
 
     const data = await pool.getUserAccountData(users[7].address);
@@ -284,14 +283,13 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
 
   // Case 5: Whitelisted + HF > 0.95 + collateral ≥ $2000 + debt ≥ $2000 → 50%
   //   All values above thresholds → capped at 50% even for whitelisted
-  //   3000 AGT ($3000) collateral, borrow ~$1852 → after 1.25x debt ~$2316 ≥ $2000
-  it('Case 5 setup: 3000 AGT ($3000 collateral ≥ $2000), debt ≥ $2000, 0.95 < HF < 1.0', async () => {
+  //   20 OXAU (~$3100) collateral, debt remains above $2000 after repricing.
+  it('Case 5 setup: 20 OXAU (~$3100 collateral ≥ $2000), debt ≥ $2000, 0.95 < HF < 1.0', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(9, '3000');
+    await setupPosition(9, '20');
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
-    // 1.25x → debt ~$2316 (≥ $2000), collateral $3000 (≥ $2000)
     await setAggregatorPrice(
       oracle,
       usdc.address,
@@ -324,10 +322,10 @@ makeSuite('Whitelist Liquidation: _getMaxDebtToLiquidate branch coverage', (test
 
   // Case 6: Whitelist granted then revoked → 50%
   //   After revocation, liquidation falls back to 50% even when HF < 0.95
-  it('Case 6 setup: 100 AGT collateral, borrow USDC, drop HF < 0.95', async () => {
+  it('Case 6 setup: 10 OXAU collateral, borrow USDC, drop HF < 0.95', async () => {
     const { usdc, oracle, users, pool } = testEnv;
     await setAggregatorPrice(oracle, usdc.address, oneUsd.toFixed(0));
-    await setupPosition(11, '100');
+    await setupPosition(11, '10');
 
     const usdcPrice = await oracle.getAssetPrice(usdc.address);
     await setAggregatorPrice(

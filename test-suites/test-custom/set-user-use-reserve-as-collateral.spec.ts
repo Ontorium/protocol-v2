@@ -62,24 +62,24 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
   });
 
   it('User with borrow cannot disable collateral if it would cause undercollateralization (revert expected)', async () => {
-    const { agt, usdc, pool, users } = testEnv;
+    const { oxau, usdc, pool, users } = testEnv;
     const depositor = users[1];
     const borrower = users[0]; // Same user from previous tests
 
-    // Setup: Deposit AGT liquidity
-    const agtAmount = parseEther('10000');
-    await mintTokens(agt, depositor.address, agtAmount, depositor.signer);
-    await agt.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    // Setup: Deposit OXAU liquidity
+    const oxauAmount = parseEther('10000');
+    await mintTokens(oxau, depositor.address, oxauAmount, depositor.signer);
+    await oxau.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(depositor.signer).deposit(agt.address, agtAmount, depositor.address, 0)
+      await pool.connect(depositor.signer).deposit(oxau.address, oxauAmount, depositor.address, 0)
     );
 
     // Borrower takes a loan
-    const borrowAmount = parseEther('500');
+    const borrowAmount = parseEther('4');
     try {
       await pool
         .connect(borrower.signer)
-        .callStatic.borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address);
+        .callStatic.borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address);
       console.log('callStatic.borrow OK');
     } catch (e: any) {
       console.log('callStatic.borrow REVERT:', e?.error?.message ?? e?.reason ?? e?.message);
@@ -90,7 +90,7 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
     await waitForTx(
       await pool
         .connect(borrower.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
     );
 
     // Trying to disable collateral should fail
@@ -109,7 +109,7 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
   });
 
   it('Multiple collateral types - user can disable one while keeping others', async () => {
-    const { agt, usdc, usdt, pool, users, helpersContract } = testEnv;
+    const { oxau, usdc, usdt, pool, users, helpersContract } = testEnv;
     const user = users[3];
 
     // Deposit USDC
@@ -128,12 +128,12 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
       await pool.connect(user.signer).deposit(usdt.address, usdtAmount, user.address, 0)
     );
 
-    // Deposit AGT
-    const agtAmount = parseEther('500');
-    await mintTokens(agt, user.address, agtAmount, user.signer);
-    await agt.connect(user.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    // Deposit OXAU
+    const oxauAmount = parseEther('500');
+    await mintTokens(oxau, user.address, oxauAmount, user.signer);
+    await oxau.connect(user.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(user.signer).deposit(agt.address, agtAmount, user.address, 0)
+      await pool.connect(user.signer).deposit(oxau.address, oxauAmount, user.address, 0)
     );
 
     const collateralBefore = await pool.getUserAccountData(user.address);
@@ -150,7 +150,7 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
     // Verify USDT is disabled, others are still enabled
     const usdcConfig = await helpersContract.getUserReserveData(usdc.address, user.address);
     const usdtConfig = await helpersContract.getUserReserveData(usdt.address, user.address);
-    const agtConfig = await helpersContract.getUserReserveData(agt.address, user.address);
+    const agtConfig = await helpersContract.getUserReserveData(oxau.address, user.address);
 
     expect(usdcConfig.usageAsCollateralEnabled).to.be.true;
     expect(usdtConfig.usageAsCollateralEnabled).to.be.false;
@@ -161,10 +161,10 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
   });
 
   it('User with multiple collaterals and borrow can disable unused collateral if HF stays above 1', async () => {
-    const { agt, usdc, usdt, pool, users, helpersContract } = testEnv;
+    const { oxau, usdc, usdt, pool, users, helpersContract } = testEnv;
     const user = users[3]; // User from previous test
 
-    // User already has USDC, USDT (disabled), AGT deposited
+    // User already has USDC, USDT (disabled), OXAU deposited
     // Re-enable USDT first
     await waitForTx(
       await pool.connect(user.signer).setUserUseReserveAsCollateral(usdt.address, true)
@@ -175,13 +175,13 @@ makeSuite('Custom Market - setUserUseReserveAsCollateral', (testEnv: TestEnv) =>
     await waitForTx(
       await pool
         .connect(user.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, user.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, user.address)
     );
 
     const userDataBefore = await pool.getUserAccountData(user.address);
     console.log('Health factor before disabling USDT:', userDataBefore.healthFactor.toString());
 
-    // Should be able to disable USDT since USDC + AGT provide enough collateral
+    // Should be able to disable USDT since USDC + OXAU provide enough collateral
     await waitForTx(
       await pool.connect(user.signer).setUserUseReserveAsCollateral(usdt.address, false)
     );

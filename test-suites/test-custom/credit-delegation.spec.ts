@@ -11,17 +11,17 @@ const { expect } = require('chai');
 makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
   const { LP_BORROW_ALLOWANCE_NOT_ENOUGH } = ProtocolErrors;
 
-  it('Setup: Depositor provides AGT liquidity and delegator deposits USDC collateral', async () => {
-    const { agt, usdc, pool, users } = testEnv;
+  it('Setup: Depositor provides OXAU liquidity and delegator deposits USDC collateral', async () => {
+    const { oxau, usdc, pool, users } = testEnv;
     const depositor = users[0];
     const delegator = users[1];
 
-    // Deposit AGT liquidity
+    // Deposit OXAU liquidity
     const agtAmount = parseEther('10000');
-    await mintTokens(agt, depositor.address, agtAmount, depositor.signer);
-    await agt.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    await mintTokens(oxau, depositor.address, agtAmount, depositor.signer);
+    await oxau.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(depositor.signer).deposit(agt.address, agtAmount, depositor.address, 0)
+      await pool.connect(depositor.signer).deposit(oxau.address, agtAmount, depositor.address, 0)
     );
 
     // Delegator deposits USDC collateral
@@ -41,30 +41,30 @@ makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
   });
 
   it('Borrower without delegation cannot borrow on behalf of delegator (revert expected)', async () => {
-    const { agt, pool, users } = testEnv;
+    const { oxau, pool, users } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
-    const borrowAmount = parseEther('100');
+    const borrowAmount = parseEther('10');
 
     await expect(
       pool
         .connect(borrower.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, delegator.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, delegator.address)
     ).to.be.revertedWith(LP_BORROW_ALLOWANCE_NOT_ENOUGH);
   });
 
   it('Delegator approves credit delegation to borrower', async () => {
-    const { agt, users, helpersContract } = testEnv;
+    const { oxau, users, helpersContract } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
     const variableDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
-    const delegationAmount = parseEther('500');
+    const delegationAmount = parseEther('20');
 
     await waitForTx(
       await variableDebtToken
@@ -81,41 +81,41 @@ makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
   });
 
   it('Borrower can borrow on behalf of delegator after delegation', async () => {
-    const { agt, pool, users, helpersContract } = testEnv;
+    const { oxau, pool, users, helpersContract } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
-    const borrowAmount = parseEther('100');
+    const borrowAmount = parseEther('10');
 
-    const borrowerAGTBefore = await agt.balanceOf(borrower.address);
+    const borrowerOXAUBefore = await oxau.balanceOf(borrower.address);
 
     await waitForTx(
       await pool
         .connect(borrower.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, delegator.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, delegator.address)
     );
 
-    const borrowerAGTAfter = await agt.balanceOf(borrower.address);
+    const borrowerOXAUAfter = await oxau.balanceOf(borrower.address);
 
     // Borrower receives the funds
-    expect(borrowerAGTAfter.sub(borrowerAGTBefore)).to.be.eq(borrowAmount);
+    expect(borrowerOXAUAfter.sub(borrowerOXAUBefore)).to.be.eq(borrowAmount);
 
     // Delegator has the debt
-    const delegatorDebt = await helpersContract.getUserReserveData(agt.address, delegator.address);
+    const delegatorDebt = await helpersContract.getUserReserveData(oxau.address, delegator.address);
     expect(delegatorDebt.currentVariableDebt).to.be.gte(borrowAmount);
 
     // Borrower should have no debt
-    const borrowerDebt = await helpersContract.getUserReserveData(agt.address, borrower.address);
+    const borrowerDebt = await helpersContract.getUserReserveData(oxau.address, borrower.address);
     expect(borrowerDebt.currentVariableDebt).to.be.eq(0);
   });
 
   it('Delegation allowance decreases after borrow', async () => {
-    const { agt, users, helpersContract } = testEnv;
+    const { oxau, users, helpersContract } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
     const variableDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
@@ -124,35 +124,35 @@ makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
       borrower.address
     );
 
-    // Initial delegation was 500, borrowed 100, so 400 should remain
-    expect(borrowAllowance).to.be.eq(parseEther('400'));
+    // Initial delegation was 20, borrowed 10, so 10 should remain
+    expect(borrowAllowance).to.be.eq(parseEther('10'));
   });
 
   it('Borrower cannot borrow more than remaining allowance (revert expected)', async () => {
-    const { agt, pool, users } = testEnv;
+    const { oxau, pool, users } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
-    const excessiveBorrowAmount = parseEther('500'); // More than 400 remaining
+    const excessiveBorrowAmount = parseEther('11'); // More than 10 remaining
 
     await expect(
       pool
         .connect(borrower.signer)
-        .borrow(agt.address, excessiveBorrowAmount, RateMode.Variable, 0, delegator.address)
+        .borrow(oxau.address, excessiveBorrowAmount, RateMode.Variable, 0, delegator.address)
     ).to.be.revertedWith(LP_BORROW_ALLOWANCE_NOT_ENOUGH);
   });
 
   it('Delegator can increase delegation', async () => {
-    const { agt, users, helpersContract } = testEnv;
+    const { oxau, users, helpersContract } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
     const variableDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
-    const newDelegationAmount = parseEther('1000');
+    const newDelegationAmount = parseEther('30');
 
     await waitForTx(
       await variableDebtToken
@@ -169,12 +169,12 @@ makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
   });
 
   it('Delegator can revoke delegation by setting allowance to 0', async () => {
-    const { agt, pool, users, helpersContract } = testEnv;
+    const { oxau, pool, users, helpersContract } = testEnv;
     const delegator = users[1];
     const borrower = users[2];
 
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
     const variableDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
@@ -194,31 +194,31 @@ makeSuite('Custom Market - Credit Delegation', (testEnv: TestEnv) => {
     await expect(
       pool
         .connect(borrower.signer)
-        .borrow(agt.address, parseEther('10'), RateMode.Variable, 0, delegator.address)
+        .borrow(oxau.address, parseEther('1'), RateMode.Variable, 0, delegator.address)
     ).to.be.revertedWith(LP_BORROW_ALLOWANCE_NOT_ENOUGH);
   });
 
   it('Third party can repay delegators debt', async () => {
-    const { agt, pool, users, helpersContract } = testEnv;
-    // delegator (users[1]) already has debt from previous test (100 AGT borrowed)
+    const { oxau, pool, users, helpersContract } = testEnv;
+    // delegator (users[1]) already has debt from previous test (10 OXAU borrowed)
     const delegator = users[1];
-    const repayer = users[0]; // Use depositor who already has AGT
+    const repayer = users[0]; // Use depositor who already has OXAU
 
-    const debtBefore = await helpersContract.getUserReserveData(agt.address, delegator.address);
+    const debtBefore = await helpersContract.getUserReserveData(oxau.address, delegator.address);
     console.log('Delegator debt before repay:', debtBefore.currentVariableDebt.toString());
 
-    // Repayer mints AGT and repays delegator's debt
-    const repayAmount = parseEther('50');
-    await mintTokens(agt, repayer.address, repayAmount, repayer.signer);
-    await agt.connect(repayer.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    // Repayer mints OXAU and repays delegator's debt
+    const repayAmount = parseEther('5');
+    await mintTokens(oxau, repayer.address, repayAmount, repayer.signer);
+    await oxau.connect(repayer.signer).approve(pool.address, MAX_UINT_AMOUNT);
 
     await waitForTx(
       await pool
         .connect(repayer.signer)
-        .repay(agt.address, repayAmount, RateMode.Variable, delegator.address)
+        .repay(oxau.address, repayAmount, RateMode.Variable, delegator.address)
     );
 
-    const debtAfter = await helpersContract.getUserReserveData(agt.address, delegator.address);
+    const debtAfter = await helpersContract.getUserReserveData(oxau.address, delegator.address);
     console.log('Delegator debt after repay:', debtAfter.currentVariableDebt.toString());
 
     expect(debtAfter.currentVariableDebt).to.be.lt(debtBefore.currentVariableDebt);

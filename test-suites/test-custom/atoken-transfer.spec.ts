@@ -108,7 +108,7 @@ makeSuite('AToken: Transfer', (testEnv: TestEnv) => {
     await waitForTx(await aUSDC.connect(users[0].signer).transfer(users[1].address, depositedAmount));
     
     const name = await aUSDC.name();
-    expect(name).to.be.equal('Aave interest bearing USDC');
+    expect(name).to.be.equal('Aqua Arbitrum Market USDC');
 
     const fromBalanceAfter = await aUSDC.balanceOf(users[0].address);
     const toBalanceAfter = await aUSDC.balanceOf(users[1].address);
@@ -123,21 +123,21 @@ makeSuite('AToken: Transfer', (testEnv: TestEnv) => {
     );
   });
 
-  it('User 0 deposits 100 AGT and user 1 borrows AGT using received USDC as collateral', async () => {
-    const { users, pool, agt, usdc, helpersContract } = testEnv;
+  it('User 0 deposits 100 OXAU and user 1 borrows OXAU using received USDC as collateral', async () => {
+    const { users, pool, oxau, usdc, helpersContract } = testEnv;
 
-    const agtToDeposit = await convertToCurrencyDecimals(agt.address, '100');
+    const oxauToDeposit = await convertToCurrencyDecimals(oxau.address, '100');
 
-    // Ensure AGT liquidity exists (mint in local / transfer from deployer in fork)
-    await ensureFunds(testEnv, agt, users[0].address, users[0].signer, agtToDeposit);
+    // Ensure OXAU liquidity exists (mint in local / transfer from deployer in fork)
+    await ensureFunds(testEnv, oxau, users[0].address, users[0].signer, oxauToDeposit);
 
-    await ensureApproval(agt, users[0].signer, pool.address, agtToDeposit);
+    await ensureApproval(oxau, users[0].signer, pool.address, oxauToDeposit);
 
-    // Deposit AGT to create liquidity for borrowing
+    // Deposit OXAU to create liquidity for borrowing
     await waitForTx(
       await pool
         .connect(users[0].signer)
-        .deposit(agt.address, agtToDeposit, users[0].address, '0')
+        .deposit(oxau.address, oxauToDeposit, users[0].address, '0')
     );
 
     // aTokens received by transfer are not automatically set as collateral
@@ -146,20 +146,21 @@ makeSuite('AToken: Transfer', (testEnv: TestEnv) => {
     );
 
     const userReserveDataBefore = await helpersContract.getUserReserveData(
-      agt.address,
+      oxau.address,
       users[1].address
     );
 
-    const borrowAmt = await convertToCurrencyDecimals(agt.address, '50');
+    // 1000 USDC collateral at 65% LTV supports about 4.1 OXAU at the current 155 USD price.
+    const borrowAmt = await convertToCurrencyDecimals(oxau.address, '4');
 
     await waitForTx(
       await pool
         .connect(users[1].signer)
-        .borrow(agt.address, borrowAmt, RateMode.Variable, AAVE_REFERRAL, users[1].address)
+        .borrow(oxau.address, borrowAmt, RateMode.Variable, AAVE_REFERRAL, users[1].address)
     );
 
     const userReserveDataAfter = await helpersContract.getUserReserveData(
-      agt.address,
+      oxau.address,
       users[1].address
     );
 

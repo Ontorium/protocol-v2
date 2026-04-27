@@ -2,7 +2,7 @@ import { TestEnv, makeSuite } from './helpers/make-suite';
 import { APPROVAL_AMOUNT_LENDING_POOL, RAY } from '../../helpers/constants';
 import { convertToCurrencyDecimals } from '../../helpers/contracts-helpers';
 import { ProtocolErrors } from '../../helpers/types';
-import { strategyAGT, strategyUSDC } from '../../markets/custom/reservesConfigs';
+import { strategyOXAU, strategyUSDC } from '../../markets/custom/reservesConfigs';
 import { mintTokens, getAdminSigner } from './helpers/mint-tokens';
 
 const { expect } = require('chai');
@@ -19,56 +19,56 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
   } = ProtocolErrors;
 
   it('Reverts trying to set an invalid reserve factor', async () => {
-    const { configurator, agt, addressesProvider } = testEnv;
+    const { configurator, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
     const invalidReserveFactor = 65536;
 
     await expect(
-      configurator.connect(adminSigner).setReserveFactor(agt.address, invalidReserveFactor)
+      configurator.connect(adminSigner).setReserveFactor(oxau.address, invalidReserveFactor)
     ).to.be.revertedWith(RC_INVALID_RESERVE_FACTOR);
   });
 
-  it('Deactivates the AGT reserve', async () => {
-    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+  it('Deactivates the OXAU reserve', async () => {
+    const { configurator, oxau, helpersContract, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).deactivateReserve(agt.address);
-    const { isActive } = await helpersContract.getReserveConfigurationData(agt.address);
+    await configurator.connect(adminSigner).deactivateReserve(oxau.address);
+    const { isActive } = await helpersContract.getReserveConfigurationData(oxau.address);
     expect(isActive).to.be.equal(false);
   });
 
-  it('Reactivates the AGT reserve', async () => {
-    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+  it('Reactivates the OXAU reserve', async () => {
+    const { configurator, oxau, helpersContract, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).activateReserve(agt.address);
+    await configurator.connect(adminSigner).activateReserve(oxau.address);
 
-    const { isActive } = await helpersContract.getReserveConfigurationData(agt.address);
+    const { isActive } = await helpersContract.getReserveConfigurationData(oxau.address);
     expect(isActive).to.be.equal(true);
   });
 
   it('Check the onlyAaveAdmin on deactivateReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).deactivateReserve(agt.address),
+      configurator.connect(users[2].signer).deactivateReserve(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
   it('Check the onlyAaveAdmin on activateReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).activateReserve(agt.address),
+      configurator.connect(users[2].signer).activateReserve(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Freezes the AGT reserve', async () => {
-    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+  it('Freezes the OXAU reserve', async () => {
+    const { configurator, oxau, helpersContract, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).freezeReserve(agt.address);
+    await configurator.connect(adminSigner).freezeReserve(oxau.address);
     const {
       decimals,
       ltv,
@@ -79,24 +79,24 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(true);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
-    expect(stableBorrowRateEnabled).to.be.equal(strategyAGT.stableBorrowRateEnabled);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
+    expect(stableBorrowRateEnabled).to.be.equal(strategyOXAU.stableBorrowRateEnabled);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
-  it('Unfreezes the AGT reserve', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Unfreezes the OXAU reserve', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).unfreezeReserve(agt.address);
+    await configurator.connect(adminSigner).unfreezeReserve(oxau.address);
 
     const {
       decimals,
@@ -108,40 +108,40 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
-    expect(stableBorrowRateEnabled).to.be.equal(strategyAGT.stableBorrowRateEnabled);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
+    expect(stableBorrowRateEnabled).to.be.equal(strategyOXAU.stableBorrowRateEnabled);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
   it('Check the onlyAaveAdmin on freezeReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).freezeReserve(agt.address),
+      configurator.connect(users[2].signer).freezeReserve(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
   it('Check the onlyAaveAdmin on unfreezeReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).unfreezeReserve(agt.address),
+      configurator.connect(users[2].signer).unfreezeReserve(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Deactivates the AGT reserve for borrowing', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Deactivates the OXAU reserve for borrowing', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).disableBorrowingOnReserve(agt.address);
+    await configurator.connect(adminSigner).disableBorrowingOnReserve(oxau.address);
     const {
       decimals,
       ltv,
@@ -152,26 +152,26 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(false);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
-    expect(stableBorrowRateEnabled).to.be.equal(strategyAGT.stableBorrowRateEnabled);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
+    expect(stableBorrowRateEnabled).to.be.equal(strategyOXAU.stableBorrowRateEnabled);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
-  it('Activates the AGT reserve for borrowing', async () => {
-    const { configurator, agt, helpersContract, addressesProvider } = testEnv;
+  it('Activates the OXAU reserve for borrowing', async () => {
+    const { configurator, oxau, helpersContract, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
     // Enable borrowing with stable rate enabled (second param = true)
-    await configurator.connect(adminSigner).enableBorrowingOnReserve(agt.address, true);
-    const { variableBorrowIndex } = await helpersContract.getReserveData(agt.address);
+    await configurator.connect(adminSigner).enableBorrowingOnReserve(oxau.address, true);
+    const { variableBorrowIndex } = await helpersContract.getReserveData(oxau.address);
 
     const {
       decimals,
@@ -183,43 +183,43 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
     // stable rate was enabled by enableBorrowingOnReserve call above
     expect(stableBorrowRateEnabled).to.be.equal(true);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
 
     expect(variableBorrowIndex.toString()).to.be.equal(RAY);
   });
 
   it('Check the onlyAaveAdmin on disableBorrowingOnReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).disableBorrowingOnReserve(agt.address),
+      configurator.connect(users[2].signer).disableBorrowingOnReserve(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
   it('Check the onlyAaveAdmin on enableBorrowingOnReserve ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).enableBorrowingOnReserve(agt.address, true),
+      configurator.connect(users[2].signer).enableBorrowingOnReserve(oxau.address, true),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Deactivates the AGT reserve as collateral', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Deactivates the OXAU reserve as collateral', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).configureReserveAsCollateral(agt.address, 0, 0, 0);
+    await configurator.connect(adminSigner).configureReserveAsCollateral(oxau.address, 0, 0, 0);
 
     const {
       decimals,
@@ -231,7 +231,7 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
@@ -241,14 +241,14 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
     expect(liquidationThreshold).to.be.equal(0);
     expect(liquidationBonus).to.be.equal(0);
     expect(stableBorrowRateEnabled).to.be.equal(true);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
-  it('Activates the AGT reserve as collateral', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Activates the OXAU reserve as collateral', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).configureReserveAsCollateral(agt.address, strategyAGT.baseLTVAsCollateral, strategyAGT.liquidationThreshold, strategyAGT.liquidationBonus);
+    await configurator.connect(adminSigner).configureReserveAsCollateral(oxau.address, strategyOXAU.baseLTVAsCollateral, strategyOXAU.liquidationThreshold, strategyOXAU.liquidationBonus);
 
     const {
       decimals,
@@ -260,35 +260,35 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
     // stable rate was enabled by enableBorrowingOnReserve in earlier test
     expect(stableBorrowRateEnabled).to.be.equal(true);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
   it('Check the onlyAaveAdmin on configureReserveAsCollateral ', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
       configurator
         .connect(users[2].signer)
-        .configureReserveAsCollateral(agt.address, '7500', '8000', '10500'),
+        .configureReserveAsCollateral(oxau.address, '7500', '8000', '10500'),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Disable stable borrow rate on the AGT reserve', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Disable stable borrow rate on the OXAU reserve', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).disableReserveStableRate(agt.address);
+    await configurator.connect(adminSigner).disableReserveStableRate(oxau.address);
     const {
       decimals,
       ltv,
@@ -299,24 +299,24 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
     expect(stableBorrowRateEnabled).to.be.equal(false);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
-  it('Enables stable borrow rate on the AGT reserve', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Enables stable borrow rate on the OXAU reserve', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).enableReserveStableRate(agt.address);
+    await configurator.connect(adminSigner).enableReserveStableRate(oxau.address);
     const {
       decimals,
       ltv,
@@ -327,40 +327,40 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
     expect(stableBorrowRateEnabled).to.be.equal(true);
-    expect(reserveFactor).to.be.equal(strategyAGT.reserveFactor);
+    expect(reserveFactor).to.be.equal(strategyOXAU.reserveFactor);
   });
 
   it('Check the onlyAaveAdmin on disableReserveStableRate', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).disableReserveStableRate(agt.address),
+      configurator.connect(users[2].signer).disableReserveStableRate(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
   it('Check the onlyAaveAdmin on enableReserveStableRate', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).enableReserveStableRate(agt.address),
+      configurator.connect(users[2].signer).enableReserveStableRate(oxau.address),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Changes the reserve factor of AGT', async () => {
-    const { configurator, helpersContract, agt, addressesProvider } = testEnv;
+  it('Changes the reserve factor of OXAU', async () => {
+    const { configurator, helpersContract, oxau, addressesProvider } = testEnv;
     const adminSigner = await getAdminSigner(addressesProvider);
 
-    await configurator.connect(adminSigner).setReserveFactor(agt.address, '1000');
+    await configurator.connect(adminSigner).setReserveFactor(oxau.address, '1000');
     const {
       decimals,
       ltv,
@@ -371,24 +371,24 @@ makeSuite('LendingPoolConfigurator', (testEnv: TestEnv) => {
       borrowingEnabled,
       isActive,
       isFrozen,
-    } = await helpersContract.getReserveConfigurationData(agt.address);
+    } = await helpersContract.getReserveConfigurationData(oxau.address);
 
     expect(borrowingEnabled).to.be.equal(true);
     expect(isActive).to.be.equal(true);
     expect(isFrozen).to.be.equal(false);
-    expect(decimals).to.be.equal(strategyAGT.reserveDecimals);
-    expect(ltv).to.be.equal(strategyAGT.baseLTVAsCollateral);
-    expect(liquidationThreshold).to.be.equal(strategyAGT.liquidationThreshold);
-    expect(liquidationBonus).to.be.equal(strategyAGT.liquidationBonus);
+    expect(decimals).to.be.equal(strategyOXAU.reserveDecimals);
+    expect(ltv).to.be.equal(strategyOXAU.baseLTVAsCollateral);
+    expect(liquidationThreshold).to.be.equal(strategyOXAU.liquidationThreshold);
+    expect(liquidationBonus).to.be.equal(strategyOXAU.liquidationBonus);
     // stable rate was enabled by enableReserveStableRate in earlier test
     expect(stableBorrowRateEnabled).to.be.equal(true);
     expect(reserveFactor).to.be.equal(1000);
   });
 
   it('Check the onlyLendingPoolManager on setReserveFactor', async () => {
-    const { configurator, users, agt } = testEnv;
+    const { configurator, users, oxau } = testEnv;
     await expect(
-      configurator.connect(users[2].signer).setReserveFactor(agt.address, '2000'),
+      configurator.connect(users[2].signer).setReserveFactor(oxau.address, '2000'),
       CALLER_NOT_POOL_ADMIN
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
