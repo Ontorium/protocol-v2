@@ -33,7 +33,7 @@ export async function mintTokens(
     // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const tokenContract = new hre.ethers.Contract(token.address, tokenAbi, directProvider);
 
-    // For AGT token, mint via minters function
+    // For OXAU token, mint via minters function
     let isGoldToken = false;
     let minterAddress: string | null = null;
 
@@ -44,11 +44,11 @@ export async function mintTokens(
         minterAddress = minters[0];
       }
     } catch (e) {
-      // Not a GoldToken (AGT)
+      // Not a GoldToken (OXAU)
     }
 
     if (isGoldToken && minterAddress) {
-      // AGT: Mint via minter
+      // OXAU: Mint via minter
       await directProvider.send('anvil_impersonateAccount', [minterAddress]);
       await directProvider.send('anvil_setBalance', [minterAddress, '0x56BC75E2D63100000']);
 

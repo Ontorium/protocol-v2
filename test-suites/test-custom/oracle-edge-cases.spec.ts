@@ -18,15 +18,25 @@ const { expect } = require('chai');
  */
 makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
   const { VL_COLLATERAL_BALANCE_IS_0 } = ProtocolErrors;
+  let initialUsdcPrice: string;
+
+  before(async () => {
+    initialUsdcPrice = (await testEnv.oracle.getAssetPrice(testEnv.usdc.address)).toString();
+  });
+
+  afterEach(async () => {
+    const currentUsdcPrice = (await testEnv.oracle.getAssetPrice(testEnv.usdc.address)).toString();
+    if (currentUsdcPrice !== initialUsdcPrice) {
+      await setAggregatorPrice(testEnv.oracle, testEnv.usdc.address, initialUsdcPrice);
+    }
+  });
 
   it('Protocol correctly handles collateral price = 0', async () => {
     const { oxau, usdc, pool, users, oracle } = testEnv;
     const depositor = users[0];
     const borrower = users[1];
 
-    // Store original price
-    const originalUsdcPrice = (await oracle.getAssetPrice(usdc.address)).toString();
-    console.log('Original USDC price:', originalUsdcPrice);
+    console.log('Original USDC price:', initialUsdcPrice);
 
     // Setup: Deposit OXAU liquidity
     const agtAmount = parseEther('10000');
@@ -73,16 +83,6 @@ makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
     const depositor = users[0];
     const borrower = users[2];
 
-    // Store original price
-    const originalUsdcPrice = (await oracle.getAssetPrice(usdc.address)).toString();
-
-    // Check if we need to restore price first (from previous test)
-    if (originalUsdcPrice === '0') {
-      // Previous test left price at 0, we need a fresh fork
-      console.log('Skipping test - oracle state polluted from previous test');
-      return;
-    }
-
     // Setup: Deposit OXAU liquidity
     const agtAmount = parseEther('10000');
     await mintTokens(oxau, depositor.address, agtAmount, depositor.signer);
@@ -99,8 +99,9 @@ makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
       await pool.connect(borrower.signer).deposit(usdc.address, collateralAmount, borrower.address, 0)
     );
 
-    // Borrow some OXAU
-    const borrowAmount = parseEther('100');
+    // 1000 USDC collateral at 75% LTV supports roughly 4.8 OXAU at the current price.
+    const borrowAmount = parseEther('4');
+
     await waitForTx(
       await pool.connect(borrower.signer).borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
     );

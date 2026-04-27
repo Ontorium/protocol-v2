@@ -5,8 +5,8 @@ import { rateStrategyCustom } from './rateStrategies';
 // OXAU (Gold-pegged RWA token)
 export const strategyOXAU: IReserveParams = {
   strategy: rateStrategyCustom,
-  baseLTVAsCollateral: '7500', // 75% LTV
-  liquidationThreshold: '8500', // 85%
+  baseLTVAsCollateral: '6500', // 65% LTV
+  liquidationThreshold: '7500', // 75%
   liquidationBonus: '10500', // 5%
   borrowingEnabled: true,
   stableBorrowRateEnabled: false,
@@ -14,9 +14,6 @@ export const strategyOXAU: IReserveParams = {
   aTokenImpl: eContractid.AToken,
   reserveFactor: '1000', // 10%
 };
-
-// Backward-compatible alias for older AGT-named tests.
-export const strategyAGT = strategyOXAU;
 
 // USDC (Stablecoin)
 export const strategyUSDC: IReserveParams = {

@@ -1,6 +1,6 @@
 {
   "title": "LendingPool: setUserUseReserveAsCollateral",
-  "description": "Test cases for enabling/disabling reserve as collateral with AGT, USDC, USDT.",
+  "description": "Test cases for enabling/disabling reserve as collateral with OXAU, USDC, USDT.",
   "stories": [
     {
       "description": "User 0 deposits 1000 USDC, disables it as collateral",
@@ -57,12 +57,12 @@
       ]
     },
     {
-      "description": "User 0 deposits 100 AGT, disables it as collateral",
+      "description": "User 0 deposits 100 OXAU, disables it as collateral",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "100",
             "user": "0"
           },
@@ -71,7 +71,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "0"
           },
           "expected": "success"
@@ -79,7 +79,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "100",
             "user": "0"
           },
@@ -88,7 +88,7 @@
         {
           "name": "setUseAsCollateral",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "0",
             "useAsCollateral": "false"
           },
@@ -137,7 +137,7 @@
       ]
     },
     {
-      "description": "User 3 deposits 1000 USDC and 50 AGT, borrows 700 USDT. User 3 tries to disable USDC as collateral (revert expected - AGT alone cannot cover debt)",
+      "description": "User 3 deposits 1000 USDC and 5 OXAU, borrows 700 USDT. User 3 tries to disable USDC as collateral (revert expected - OXAU alone cannot cover debt)",
       "actions": [
         {
           "name": "mint",
@@ -168,8 +168,8 @@
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
-            "amount": "50",
+            "reserve": "OXAU",
+            "amount": "5",
             "user": "3"
           },
           "expected": "success"
@@ -177,7 +177,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "3"
           },
           "expected": "success"
@@ -185,8 +185,8 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
-            "amount": "50",
+            "reserve": "OXAU",
+            "amount": "5",
             "user": "3"
           },
           "expected": "success"
@@ -240,12 +240,12 @@
       ]
     },
     {
-      "description": "User 3 can disable AGT as collateral since USDC alone still covers the debt",
+      "description": "User 3 can disable OXAU as collateral since USDC alone still covers the debt",
       "actions": [
         {
           "name": "setUseAsCollateral",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "3",
             "useAsCollateral": "false"
           },

@@ -86,9 +86,14 @@ task('verify:general', 'Verify contracts at Etherscan')
       const walletProvider = await getWalletProvider();
 
       const wethGatewayAddress = getParamPerNetwork(WethGateway, network);
-      const wethGateway = notFalsyOrZeroAddress(wethGatewayAddress)
-        ? await getWETHGateway(wethGatewayAddress)
-        : await getWETHGateway();
+      let wethGateway: any = null;
+      try {
+        wethGateway = notFalsyOrZeroAddress(wethGatewayAddress)
+          ? await getWETHGateway(wethGatewayAddress)
+          : await getWETHGateway();
+      } catch (e) {
+        console.log('\n- WETHGateway not deployed, skipping verification');
+      }
 
       // Address Provider
       console.log('\n- Verifying address provider...\n');
@@ -129,10 +134,12 @@ task('verify:general', 'Verify contracts at Etherscan')
       await verifyContract(eContractid.WalletBalanceProvider, walletProvider, []);
 
       // WETHGateway
-      console.log('\n- Verifying  WETHGateway...\n');
-      await verifyContract(eContractid.WETHGateway, wethGateway, [
-        await getWrappedNativeTokenAddress(poolConfig),
-      ]);
+      if (wethGateway) {
+        console.log('\n- Verifying  WETHGateway...\n');
+        await verifyContract(eContractid.WETHGateway, wethGateway, [
+          await getWrappedNativeTokenAddress(poolConfig),
+        ]);
+      }
     }
     // Lending Pool proxy
     console.log('\n- Verifying  Lending Pool Proxy...\n');

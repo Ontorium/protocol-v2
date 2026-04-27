@@ -1,6 +1,6 @@
 {
   "title": "LendingPool: Borrow/repay (variable rate)",
-  "description": "Test cases for variable rate borrow and repay with AGT, USDC, USDT. Stable borrow is disabled.",
+  "description": "Test cases for variable rate borrow and repay with OXAU, USDC, USDT. Stable borrow is disabled.",
   "stories": [
     {
       "description": "User 2 deposits 1 USDC to account for rounding errors",
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 AGT as collateral and borrows 50 USDC at variable rate",
+      "description": "User 0 deposits 1000 USDC, user 1 deposits 100 OXAU as collateral and borrows 50 USDC at variable rate",
       "actions": [
         {
           "name": "mint",
@@ -65,7 +65,7 @@
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "100",
             "user": "1"
           },
@@ -74,7 +74,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "1"
           },
           "expected": "success"
@@ -82,7 +82,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "100",
             "user": "1"
           },
@@ -252,7 +252,7 @@
         {
           "name": "withdraw",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "-1",
             "user": "1"
           },
@@ -303,12 +303,12 @@
       ]
     },
     {
-      "description": "User 4 deposits 10 AGT as collateral and tries to borrow 500 USDC (not enough collateral, revert expected)",
+      "description": "User 4 deposits 10 OXAU as collateral and tries to borrow 1500 USDC (not enough collateral, revert expected)",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "10",
             "user": "4"
           },
@@ -317,7 +317,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "4"
           },
           "expected": "success"
@@ -325,7 +325,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "10",
             "user": "4"
           },
@@ -335,7 +335,7 @@
           "name": "borrow",
           "args": {
             "reserve": "USDC",
-            "amount": "500",
+            "amount": "1500",
             "borrowRateMode": "variable",
             "user": "4"
           },
@@ -345,12 +345,12 @@
       ]
     },
     {
-      "description": "User 4 withdraws the 10 AGT collateral",
+      "description": "User 4 withdraws the 10 OXAU collateral",
       "actions": [
         {
           "name": "withdraw",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "-1",
             "user": "4"
           },
@@ -359,12 +359,12 @@
       ]
     },
     {
-      "description": "User 0 deposits 1000 AGT, user 1 deposits 1000 USDT as collateral and borrows 10 AGT at variable rate",
+      "description": "User 0 deposits 1000 OXAU, user 1 deposits 1000 USDT as collateral and borrows 10 OXAU at variable rate",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -373,7 +373,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "0"
           },
           "expected": "success"
@@ -381,7 +381,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -416,7 +416,7 @@
         {
           "name": "borrow",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "10",
             "borrowRateMode": "variable",
             "user": "1"
@@ -426,12 +426,12 @@
       ]
     },
     {
-      "description": "User 1 repays the AGT borrow after one year",
+      "description": "User 1 repays the OXAU borrow after one year",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "20",
             "user": "1"
           },
@@ -440,7 +440,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "1"
           },
           "expected": "success"
@@ -448,7 +448,7 @@
         {
           "name": "repay",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "-1",
             "user": "1",
             "onBehalfOf": "1",

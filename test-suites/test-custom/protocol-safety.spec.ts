@@ -127,6 +127,10 @@ const setupUsdcBorrowPosition = async (
 };
 
 makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
+  afterEach(async () => {
+    await setPriceOracleSentinel(testEnv, ZERO_ADDRESS);
+  });
+
   it('blocks reentrant liquidation calls', async () => {
     const { pool, addressesProvider } = testEnv;
     const caller = testEnv.users[0];
@@ -240,6 +244,60 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
           false
         )
     ).to.be.revertedWith(LP_PRICE_ORACLE_SENTINEL_CHECK_FAILED);
+  });
+
+  it('allows liquidation when health factor is below the sentinel bypass threshold even if the sequencer is down', async () => {
+    const { oxau, usdc, oracle, pool, users, helpersContract } = testEnv;
+    const borrower = users[6];
+    const liquidator = users[7];
+
+    await provideLiquidity(testEnv, 3, usdc, '50000');
+    await setupUsdcBorrowPosition(testEnv, 6, '100');
+
+    const userDataBefore = await pool.getUserAccountData(borrower.address);
+    const targetHealthFactor = new BigNumber(parseEther('0.94').toString());
+    const usdcPrice = new BigNumber((await oracle.getAssetPrice(usdc.address)).toString());
+    const priceMultiplier = new BigNumber(userDataBefore.healthFactor.toString()).div(
+      targetHealthFactor
+    );
+    await setAggregatorPrice(
+      oracle,
+      usdc.address,
+      usdcPrice.multipliedBy(priceMultiplier).integerValue(BigNumber.ROUND_UP).toFixed(0)
+    );
+
+    const userData = await pool.getUserAccountData(borrower.address);
+    expect(userData.healthFactor.toString()).to.be.bignumber.lt(parseEther('0.95').toString());
+
+    const now = (await hre.ethers.provider.getBlock('latest')).timestamp;
+    const downFeed = await deploySequencerUptimeFeed(1, now);
+    await deploySentinel(testEnv, downFeed.address);
+
+    const liquidatorAmount = await convertToCurrencyDecimals(usdc.address, '10000');
+    await mintTokens(usdc, liquidator.address, liquidatorAmount, liquidator.signer);
+    await usdc.connect(liquidator.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+
+    const debtBefore = (
+      await helpersContract.getUserReserveData(usdc.address, borrower.address)
+    ).currentVariableDebt;
+
+    await waitForTx(
+      await pool
+        .connect(liquidator.signer)
+        .liquidationCall(
+          oxau.address,
+          usdc.address,
+          borrower.address,
+          APPROVAL_AMOUNT_LENDING_POOL,
+          false
+        )
+    );
+
+    const debtAfter = (
+      await helpersContract.getUserReserveData(usdc.address, borrower.address)
+    ).currentVariableDebt;
+
+    expect(debtAfter.lt(debtBefore)).to.be.true;
   });
 
   it('reverts when an AaveOracle source is stale', async () => {

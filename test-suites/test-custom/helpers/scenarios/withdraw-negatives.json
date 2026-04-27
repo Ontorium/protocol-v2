@@ -1,6 +1,6 @@
 {
   "title": "LendingPool: Withdraw negatives (reverts)",
-  "description": "Test cases for withdraw failures with AGT, USDC, USDT.",
+  "description": "Test cases for withdraw failures with OXAU, USDC, USDT.",
   "stories": [
     {
       "description": "User 0 deposits 1000 USDC and tries to withdraw 0 USDC (revert expected)",
@@ -73,12 +73,12 @@
       ]
     },
     {
-      "description": "User 1 deposits 1000 AGT, user 2 deposits 1000 USDC as collateral and borrows 100 AGT. User 2 tries to withdraw all USDC (revert expected due to HF)",
+      "description": "User 1 deposits 1000 OXAU, user 2 deposits 1000 USDC as collateral and borrows 4 OXAU. User 2 tries to withdraw all USDC (revert expected due to HF)",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "1"
           },
@@ -87,7 +87,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "1"
           },
           "expected": "success"
@@ -95,7 +95,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "1"
           },
@@ -130,8 +130,8 @@
         {
           "name": "borrow",
           "args": {
-            "reserve": "AGT",
-            "amount": "100",
+            "reserve": "OXAU",
+            "amount": "4",
             "user": "2",
             "borrowRateMode": "variable"
           },

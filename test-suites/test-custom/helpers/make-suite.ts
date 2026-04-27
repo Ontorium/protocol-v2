@@ -52,8 +52,6 @@ export interface TestEnv {
   aWETH: AToken;
   oxau: MintableERC20;
   aOXAU: AToken;
-  agt: MintableERC20;
-  aAGT: AToken;
   usdc: MintableERC20;
   aUSDC: AToken;
   usdt: MintableERC20;
@@ -78,8 +76,6 @@ const testEnv: TestEnv = {
   aWETH: {} as AToken,
   oxau: {} as MintableERC20,
   aOXAU: {} as AToken,
-  agt: {} as MintableERC20,
-  aAGT: {} as AToken,
   usdc: {} as MintableERC20,
   aUSDC: {} as AToken,
   usdt: {} as MintableERC20,
@@ -179,9 +175,6 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
   if (oxauAddress && aOXAUAddress) {
     testEnv.oxau = await getMintableERC20(oxauAddress);
     testEnv.aOXAU = await getAToken(aOXAUAddress);
-    // Backward-compatible aliases for older AGT-named tests.
-    testEnv.agt = testEnv.oxau;
-    testEnv.aAGT = testEnv.aOXAU;
   }
 
   if (usdcAddress && aUSDCAddress) {
@@ -202,7 +195,6 @@ export async function initializeMakeSuite(addressesProviderAddress?: string) {
 
     if (oxauAddress) {
       db.set(`OXAU.${networkName}`, { address: oxauAddress }).write();
-      db.set(`AGT.${networkName}`, { address: oxauAddress }).write();
     }
     if (usdcAddress) {
       db.set(`USDC.${networkName}`, { address: usdcAddress }).write();
