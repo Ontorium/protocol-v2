@@ -49,7 +49,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
   using PercentageMath for uint256;
   using SafeERC20 for IERC20;
 
-  uint256 public constant LENDINGPOOL_REVISION = 0x4;
+  uint256 public constant LENDINGPOOL_REVISION = 0x6;
   uint256 internal constant NOT_ENTERED = 1;
   uint256 internal constant ENTERED = 2;
 
@@ -712,6 +712,21 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     return _addressesProvider;
   }
 
+  /// @dev Returns the L2 sequencer sentinel consulted by borrow / liquidation flows.
+  ///      address(0) means the check is disabled.
+  function getPriceOracleSentinel() external view override returns (address) {
+    return _priceOracleSentinel;
+  }
+
+  /// @dev Sets the L2 sequencer sentinel. Pool admin only.
+  ///      Stored on the pool itself rather than the LendingPoolAddressesProvider so that the
+  ///      sentinel can be wired in without redeploying the immutable-admin LPAP.
+  function setPriceOracleSentinel(address sentinel) external override {
+    require(msg.sender == _addressesProvider.getPoolAdmin(), Errors.CALLER_NOT_POOL_ADMIN);
+    _priceOracleSentinel = sentinel;
+    emit PriceOracleSentinelUpdated(sentinel);
+  }
+
   /**
    * @dev Returns the percentage of available liquidity that can be borrowed at once at stable rate
    */
@@ -879,7 +894,10 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       userConfig,
       _reservesList,
       _reservesCount,
-      address(_addressesProvider)
+      ValidationLogic.ValidateBorrowSentinel({
+        addressesProvider: address(_addressesProvider),
+        priceOracleSentinel: _priceOracleSentinel
+      })
     );
 
     reserve.updateState();

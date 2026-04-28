@@ -33,4 +33,6 @@ contract LendingPoolStorage {
   mapping(address => bool) internal _liquidationWhitelist;
 
   uint256 internal _reentrancyStatus;
+
+  address internal _priceOracleSentinel;
 }

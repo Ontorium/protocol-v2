@@ -15,8 +15,8 @@ import {Errors} from '../helpers/Errors.sol';
 import {Helpers} from '../helpers/Helpers.sol';
 import {IReserveInterestRateStrategy} from '../../../interfaces/IReserveInterestRateStrategy.sol';
 import {IPriceOracleSentinel} from '../../../interfaces/IPriceOracleSentinel.sol';
-import {ILendingPoolAddressesProvider} from '../../../interfaces/ILendingPoolAddressesProvider.sol';
 import {DataTypes} from '../types/DataTypes.sol';
+import {ILendingPoolAddressesProvider} from '../../../interfaces/ILendingPoolAddressesProvider.sol';
 
 /**
  * @title ReserveLogic library
@@ -105,6 +105,13 @@ library ValidationLogic {
     bool stableRateBorrowingEnabled;
   }
 
+  /// @dev Packs the two addresses pulled from the LendingPool's storage so we don't
+  /// blow the 16-slot stack limit during ABI-decoding of validateBorrow.
+  struct ValidateBorrowSentinel {
+    address addressesProvider;
+    address priceOracleSentinel;
+  }
+
   /**
    * @dev Validates a borrow action
    * @param asset The address of the asset to borrow
@@ -117,7 +124,7 @@ library ValidationLogic {
    * @param reservesData The state of all the reserves
    * @param userConfig The state of the user for the specific reserve
    * @param reserves The addresses of all the active reserves
-   * @param addressesProvider The addresses provider used to resolve the oracle and sentinel
+   * @param sentinelParams Packed (addressesProvider, priceOracleSentinel). Sentinel address(0) disables the check.
    */
 
   function validateBorrow(
@@ -132,12 +139,12 @@ library ValidationLogic {
     DataTypes.UserConfigurationMap storage userConfig,
     mapping(uint256 => address) storage reserves,
     uint256 reservesCount,
-    address addressesProvider
+    ValidateBorrowSentinel memory sentinelParams
   ) external view {
     ValidateBorrowLocalVars memory vars;
-    address oracle = ILendingPoolAddressesProvider(addressesProvider).getPriceOracle();
-    address priceOracleSentinel = ILendingPoolAddressesProvider(addressesProvider)
-      .getPriceOracleSentinel();
+    address oracle = ILendingPoolAddressesProvider(sentinelParams.addressesProvider)
+      .getPriceOracle();
+    address priceOracleSentinel = sentinelParams.priceOracleSentinel;
 
     (vars.isActive, vars.isFrozen, vars.borrowingEnabled, vars.stableRateBorrowingEnabled) = reserve
       .configuration
