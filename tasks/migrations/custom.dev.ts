@@ -35,7 +35,7 @@ import { eContractid, tEthereumAddress } from '../../helpers/types';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import { initReservesByHelper, configureReservesByHelper } from '../../helpers/init-helpers';
 
-task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environment')
+task('custom:dev', 'Deploy Custom market (OXAU, USDC, USDT) development environment')
   .addFlag('verify', 'Verify contracts at Etherscan')
   .addFlag('skipRegistry', 'Skip registry deployment (for fork testing)')
   .setAction(async ({ verify, skipRegistry }, localBRE) => {
@@ -64,8 +64,8 @@ task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environme
 
     console.log('Migration started\n');
 
-    // Deploy only Custom market tokens (AGT, USDC, USDT)
-    console.log('1. Deploy Custom market mock tokens (AGT, USDC, USDT)');
+    // Deploy only Custom market tokens (OXAU, USDC, USDT)
+    console.log('1. Deploy Custom market mock tokens (OXAU, USDC, USDT)');
     const customTokens = Object.keys(config.ReservesConfig);
     const mockTokens: { [symbol: string]: { address: string } } = {};
 
@@ -93,7 +93,7 @@ task('custom:dev', 'Deploy Custom market (AGT, USDC, USDT) development environme
 
     // Set initial prices for Custom market tokens only
     const tokenAddressesForOracle: { [key: string]: string } = {
-      AGT: mockTokens.AGT.address,
+      OXAU: mockTokens.OXAU.address,
       USDC: mockTokens.USDC.address,
       USDT: mockTokens.USDT.address,
       USD: UsdAddress,
