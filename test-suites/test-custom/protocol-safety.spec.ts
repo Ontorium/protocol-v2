@@ -9,10 +9,12 @@ import { increaseTime, waitForTx } from '../../helpers/misc-utils';
 import { makeSuite, TestEnv } from './helpers/make-suite';
 import {
   getAddressesProviderOwnerSigner,
+  getAdminSigner,
   getOracleOwnerSigner,
   mintTokens,
   setAggregatorPrice,
   stopImpersonatingAddressesProviderOwner,
+  stopImpersonatingAdmin,
   stopImpersonatingOracleOwner,
 } from './helpers/mint-tokens';
 
@@ -23,11 +25,31 @@ const ORACLE_PRICE_STALE = '81';
 const LP_PRICE_ORACLE_SENTINEL_CHECK_FAILED = '82';
 const STABILIZATION_WINDOW = 3600;
 
-const deploySequencerUptimeFeed = async (answer: number, startedAt: number) => {
-  const factory = await hre.ethers.getContractFactory('MockSequencerUptimeFeed');
-  const feed = await factory.deploy(answer, startedAt);
+/**
+ * Deploys a fresh production PriceOracleSentinel + a mock sequencer feed.
+ * Tests flip sequencer state on the returned `feed` (not on the sentinel) —
+ * mirroring mainnet, where the same PriceOracleSentinel is reused and only
+ * the feed is swapped to the live ChainLink L2 sequencer feed.
+ */
+const deployMockSentinel = async (
+  testEnv: TestEnv,
+  answer: number,
+  startedAt: number,
+  stabilizationWindow: number = STABILIZATION_WINDOW
+) => {
+  const feedFactory = await hre.ethers.getContractFactory('MockSequencerUptimeFeed');
+  const feed = await feedFactory.deploy(answer, startedAt);
   await feed.deployed();
-  return feed;
+
+  const sentinelFactory = await hre.ethers.getContractFactory('PriceOracleSentinel');
+  const sentinel = await sentinelFactory.deploy(
+    testEnv.addressesProvider.address,
+    feed.address,
+    stabilizationWindow
+  );
+  await sentinel.deployed();
+
+  return { feed, sentinel };
 };
 
 const deployMockAggregator = async (answer: string | number, decimals: number = 8) => {
@@ -38,29 +60,18 @@ const deployMockAggregator = async (answer: string | number, decimals: number = 
 };
 
 const setPriceOracleSentinel = async (testEnv: TestEnv, sentinelAddress: string) => {
-  const ownerSigner = await getAddressesProviderOwnerSigner(testEnv.addressesProvider);
-  const provider = new hre.ethers.Contract(
-    testEnv.addressesProvider.address,
+  const adminSigner = await getAdminSigner(testEnv.addressesProvider);
+  // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+  const pool = new hre.ethers.Contract(
+    testEnv.pool.address,
     ['function setPriceOracleSentinel(address sentinel) external'],
-    ownerSigner
+    adminSigner
   );
 
-  await waitForTx(await provider.setPriceOracleSentinel(sentinelAddress));
-  await stopImpersonatingAddressesProviderOwner(testEnv.addressesProvider);
+  await waitForTx(await pool.setPriceOracleSentinel(sentinelAddress));
+  await stopImpersonatingAdmin(testEnv.addressesProvider);
 };
 
-const deploySentinel = async (testEnv: TestEnv, feedAddress: string) => {
-  const factory = await hre.ethers.getContractFactory('PriceOracleSentinel');
-  const sentinel = await factory.deploy(
-    testEnv.addressesProvider.address,
-    feedAddress,
-    STABILIZATION_WINDOW
-  );
-  await sentinel.deployed();
-
-  await setPriceOracleSentinel(testEnv, sentinel.address);
-  return sentinel;
-};
 
 const provideLiquidity = async (
   testEnv: TestEnv,
@@ -173,8 +184,8 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
     await depositCollateral(testEnv, 2, oxau, '100');
 
     const now = (await hre.ethers.provider.getBlock('latest')).timestamp;
-    const downFeed = await deploySequencerUptimeFeed(1, now);
-    await deploySentinel(testEnv, downFeed.address);
+    const { feed, sentinel } = await deployMockSentinel(testEnv, 1, now);
+    await setPriceOracleSentinel(testEnv, sentinel.address);
 
     const blockedBorrowAmount = await convertToCurrencyDecimals(usdc.address, '100');
     await expect(
@@ -184,7 +195,7 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
     ).to.be.revertedWith(LP_PRICE_ORACLE_SENTINEL_CHECK_FAILED);
 
     const recoveredAt = (await hre.ethers.provider.getBlock('latest')).timestamp;
-    await waitForTx(await downFeed.setLatestRoundData(0, recoveredAt));
+    await waitForTx(await feed.setLatestRoundData(0, recoveredAt));
 
     await expect(
       pool
@@ -226,8 +237,8 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
     expect(userData.healthFactor.toString()).to.be.bignumber.gte(parseEther('0.95').toString());
 
     const now = (await hre.ethers.provider.getBlock('latest')).timestamp;
-    const downFeed = await deploySequencerUptimeFeed(1, now);
-    await deploySentinel(testEnv, downFeed.address);
+    const { sentinel } = await deployMockSentinel(testEnv, 1, now);
+    await setPriceOracleSentinel(testEnv, sentinel.address);
 
     const liquidatorAmount = await convertToCurrencyDecimals(usdc.address, '10000');
     await mintTokens(usdc, liquidator.address, liquidatorAmount, liquidator.signer);
@@ -270,8 +281,8 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
     expect(userData.healthFactor.toString()).to.be.bignumber.lt(parseEther('0.95').toString());
 
     const now = (await hre.ethers.provider.getBlock('latest')).timestamp;
-    const downFeed = await deploySequencerUptimeFeed(1, now);
-    await deploySentinel(testEnv, downFeed.address);
+    const { sentinel } = await deployMockSentinel(testEnv, 1, now);
+    await setPriceOracleSentinel(testEnv, sentinel.address);
 
     const liquidatorAmount = await convertToCurrencyDecimals(usdc.address, '10000');
     await mintTokens(usdc, liquidator.address, liquidatorAmount, liquidator.signer);
