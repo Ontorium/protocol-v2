@@ -46,6 +46,10 @@ contract AaveOracle is IPriceOracleGetter, Ownable {
     address baseCurrency,
     uint256 baseCurrencyUnit
   ) public {
+    require(
+      baseCurrency == address(0) && baseCurrencyUnit == 1e8,
+      'AaveOracle: must be USD base with 8 decimals'
+    );
     _setFallbackOracle(fallbackOracle);
     _setAssetsSources(assets, sources);
     BASE_CURRENCY = baseCurrency;
@@ -92,6 +96,15 @@ contract AaveOracle is IPriceOracleGetter, Ownable {
   function _setAssetsSources(address[] memory assets, address[] memory sources) internal {
     require(assets.length == sources.length, 'INCONSISTENT_PARAMS_LENGTH');
     for (uint256 i = 0; i < assets.length; i++) {
+      // Allow sources[i] = address(0) to clear a source (falls through to fallback oracle).
+      // For non-zero sources, enforce 8-decimal feeds so the protocol's USD-denominated
+      // assumptions (e.g. LendingPoolCollateralManager's 2000 * 1e8 dust threshold) hold.
+      if (sources[i] != address(0)) {
+        require(
+          IChainlinkAggregator(sources[i]).decimals() == 8,
+          'AaveOracle: source must return 8 decimals'
+        );
+      }
       assetsSources[assets[i]] = IChainlinkAggregator(sources[i]);
       emit AssetSourceUpdated(assets[i], sources[i]);
     }

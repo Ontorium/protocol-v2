@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import hre from 'hardhat';
 import { parseEther } from 'ethers/lib/utils';
 
-import { APPROVAL_AMOUNT_LENDING_POOL, oneEther, ZERO_ADDRESS } from '../../helpers/constants';
+import { APPROVAL_AMOUNT_LENDING_POOL, oneUsd, ZERO_ADDRESS } from '../../helpers/constants';
 import { convertToCurrencyDecimals } from '../../helpers/contracts-helpers';
 import { RateMode } from '../../helpers/types';
 import { increaseTime, waitForTx } from '../../helpers/misc-utils';
@@ -312,14 +312,14 @@ makeSuite('Protocol safety checks', (testEnv: TestEnv) => {
   });
 
   it('reverts when an AaveOracle source is stale', async () => {
-    const aggregator = await deployMockAggregator(oneEther.toFixed(), 8);
+    const aggregator = await deployMockAggregator(oneUsd.toFixed(), 8);
     const factory = await hre.ethers.getContractFactory('AaveOracle');
     const staleOracle = await factory.deploy(
       [testEnv.oxau.address],
       [aggregator.address],
       testEnv.oracle.address,
       ZERO_ADDRESS,
-      oneEther.toFixed()
+      oneUsd.toFixed() // 1e8 — matches AaveOracle's USD-8-decimal invariant
     );
     await staleOracle.deployed();
 

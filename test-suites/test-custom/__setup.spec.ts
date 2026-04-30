@@ -42,7 +42,7 @@ import {
 import { DRE, waitForTx } from '../../helpers/misc-utils';
 import { initReservesByHelper, configureReservesByHelper } from '../../helpers/init-helpers';
 import CustomConfig from '../../markets/custom';
-import { oneEther, ZERO_ADDRESS } from '../../helpers/constants';
+import { oneUsd, ZERO_ADDRESS } from '../../helpers/constants';
 import {
   getLendingPool,
   getLendingPoolConfiguratorProxy,
@@ -173,8 +173,8 @@ const buildTestEnv = async (deployer: Signer, secondaryWallet: Signer) => {
     tokens,
     aggregators,
     fallbackOracle.address,
-    ZERO_ADDRESS, // No WETH for custom market
-    oneEther.toString(),
+    ZERO_ADDRESS, // USD-denominated quote (Aave convention: address(0) == USD)
+    oneUsd.toString(), // 1e8 — matches AaveOracle's USD-8-decimal invariant
   ]);
   await waitForTx(await addressesProvider.setPriceOracle(fallbackOracle.address));
 
