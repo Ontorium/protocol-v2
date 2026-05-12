@@ -42,31 +42,31 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     }
   });
 
-  it('Deposits AGT into the reserve', async () => {
-    const { pool, agt, deployer } = testEnv;
+  it('Deposits OXAU into the reserve', async () => {
+    const { pool, oxau, deployer } = testEnv;
     const userAddress = await pool.signer.getAddress();
     const amountToDeposit = ethers.utils.parseEther('100');
 
-    await mintTokens(agt, deployer.address, amountToDeposit, deployer.signer);
+    await mintTokens(oxau, deployer.address, amountToDeposit, deployer.signer);
 
-    await agt.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await oxau.approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
-    const tx = await pool.deposit(agt.address, amountToDeposit, userAddress, '0');
+    const tx = await pool.deposit(oxau.address, amountToDeposit, userAddress, '0');
     await tx.wait(1);
   });
 
-  it('Takes AGT flashloan with mode = 0, returns the funds correctly', async () => {
-    const { pool, helpersContract, agt, deployer } = testEnv;
+  it('Takes OXAU flashloan with mode = 0, returns the funds correctly', async () => {
+    const { pool, helpersContract, oxau, deployer } = testEnv;
     
     // Provide tokens to MockFlashLoanReceiver for premium payment
     const flashAmount = ethers.utils.parseEther('80');
     const premiumAmount = flashAmount.mul(9).div(10000); // 0.09% premium
-    await mintTokens(agt, _mockFlashLoanReceiver.address, premiumAmount.mul(2), deployer.signer);
+    await mintTokens(oxau, _mockFlashLoanReceiver.address, premiumAmount.mul(2), deployer.signer);
 
     try {
       await pool.callStatic.flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
+        [oxau.address],
         [ethers.utils.parseEther('80')],
         [0],
         _mockFlashLoanReceiver.address,
@@ -86,7 +86,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     await waitForTx(
       await pool.flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
+        [oxau.address],
         [ethers.utils.parseEther('80')],
         [0],
         _mockFlashLoanReceiver.address,
@@ -95,7 +95,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       )
     )
 
-    const reserveData = await helpersContract.getReserveData(agt.address);
+    const reserveData = await helpersContract.getReserveData(oxau.address);
 
     const currentLiquidityRate = reserveData.liquidityRate;
     const currentLiquidityIndex = reserveData.liquidityIndex;
@@ -109,8 +109,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     expect(currentLiquidityIndex.toString()).to.be.equal('1000720000000000000000000000');
   });
 
-  it('Takes AGT flashloan, does not return the funds with mode = 0. (revert expected)', async () => {
-    const { pool, agt, users } = testEnv;
+  it('Takes OXAU flashloan, does not return the funds with mode = 0. (revert expected)', async () => {
+    const { pool, oxau, users } = testEnv;
     const caller = users[1];
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
@@ -119,7 +119,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [ethers.utils.parseEther('80')],
           [0],
           caller.address,
@@ -129,8 +129,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(SAFEERC20_LOWLEVEL_CALL);
   });
 
-  it('Takes AGT flashloan, simulating a receiver as EOA (revert expected)', async () => {
-    const { pool, agt, users } = testEnv;
+  it('Takes OXAU flashloan, simulating a receiver as EOA (revert expected)', async () => {
+    const { pool, oxau, users } = testEnv;
     const caller = users[1];
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
     await _mockFlashLoanReceiver.setSimulateEOA(true);
@@ -140,7 +140,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [ethers.utils.parseEther('80')],
           [0],
           caller.address,
@@ -150,8 +150,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(LP_INVALID_FLASH_LOAN_EXECUTOR_RETURN);
   });
 
-  it('Takes an AGT flashloan with an invalid mode. (revert expected)', async () => {
-    const { pool, agt, users } = testEnv;
+  it('Takes an OXAU flashloan with an invalid mode. (revert expected)', async () => {
+    const { pool, oxau, users } = testEnv;
     const caller = users[1];
     await _mockFlashLoanReceiver.setSimulateEOA(false);
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
@@ -161,7 +161,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [ethers.utils.parseEther('80')],
           [4],
           caller.address,
@@ -171,8 +171,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.reverted;
   });
 
-  it('Caller deposits 1000 USDC as collateral, Takes AGT flashloan with mode = 2, does not return the funds. A variable loan for caller is created', async () => {
-    const { usdc, pool, agt, users, helpersContract, deployer } = testEnv;
+  it('Caller deposits 1000 USDC as collateral, Takes OXAU flashloan with mode = 2, does not return the funds. A variable loan for caller is created', async () => {
+    const { usdc, pool, oxau, users, helpersContract, deployer } = testEnv;
 
     const caller = users[1];
 
@@ -191,8 +191,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     try {
       await pool.connect(caller.signer).callStatic.flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
-        [ethers.utils.parseEther('10')],
+        [oxau.address],
+        [ethers.utils.parseEther('4')],
         [2],
         caller.address,
         '0x10',
@@ -207,15 +207,15 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       throw e;
     }
 
-    // With 1000 USDC collateral (~2 ETH) and 75% LTV, can borrow ~1.5 ETH worth
-    // AGT at 0.1 ETH means max ~15 AGT borrow, so use 10 AGT
+    // With 1000 USDC collateral at 65% LTV and OXAU priced at 155 USD,
+    // a borrow around 4 OXAU stays within the available borrow power.
     await waitForTx(
       await pool
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
-          [ethers.utils.parseEther('10')],
+          [oxau.address],
+          [ethers.utils.parseEther('4')],
           [2],
           caller.address,
           '0x10',
@@ -223,24 +223,27 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         )
     );
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
 
     const agtDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
     const callerDebt = await agtDebtToken.balanceOf(caller.address);
 
-    expect(callerDebt.toString()).to.be.equal('10000000000000000000', 'Invalid user debt');
+    expect(callerDebt.toString()).to.be.equal(
+      ethers.utils.parseEther('4').toString(),
+      'Invalid user debt'
+    );
   });
 
   it('tries to take a flashloan that is bigger than the available liquidity (revert expected)', async () => {
-    const { pool, agt, users } = testEnv;
+    const { pool, oxau, users } = testEnv;
     const caller = users[1];
 
     await expect(
       pool.connect(caller.signer).flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
+        [oxau.address],
         [ethers.utils.parseEther('200')], //bigger than the available liquidity
         [2],
         caller.address,
@@ -252,13 +255,13 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
   });
 
   it('tries to take a flashloan using a non contract address as receiver (revert expected)', async () => {
-    const { pool, deployer, agt, users } = testEnv;
+    const { pool, deployer, oxau, users } = testEnv;
     const caller = users[1];
 
     await expect(
       pool.flashLoan(
         deployer.address,
-        [agt.address],
+        [oxau.address],
         [ethers.utils.parseEther('100')],
         [2],
         caller.address,
@@ -368,8 +371,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(VL_COLLATERAL_BALANCE_IS_0);
   });
 
-  it('Caller deposits 1000 AGT as collateral, Takes a USDC flashloan with mode = 2, does not return the funds. A loan for caller is created', async () => {
-    const { usdc, pool, agt, users, helpersContract, deployer } = testEnv;
+  it('Caller deposits 1000 OXAU as collateral, Takes a USDC flashloan with mode = 2, does not return the funds. A loan for caller is created', async () => {
+    const { usdc, pool, oxau, users, helpersContract, deployer } = testEnv;
 
     const caller = users[8];
 
@@ -383,15 +386,15 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       await liquidityTx.wait(1);
     }
 
-    await mintTokens(agt, caller.address, await convertToCurrencyDecimals(agt.address, '1000'), caller.signer);
+    await mintTokens(oxau, caller.address, await convertToCurrencyDecimals(oxau.address, '1000'), caller.signer);
 
-    await agt.connect(caller.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
+    await oxau.connect(caller.signer).approve(pool.address, APPROVAL_AMOUNT_LENDING_POOL);
 
-    const amountToDeposit = await convertToCurrencyDecimals(agt.address, '1000');
+    const amountToDeposit = await convertToCurrencyDecimals(oxau.address, '1000');
 
     // Pre-check deposit with callStatic
-    await pool.connect(caller.signer).callStatic.deposit(agt.address, amountToDeposit, caller.address, '0');
-    const depositTx = await pool.connect(caller.signer).deposit(agt.address, amountToDeposit, caller.address, '0');
+    await pool.connect(caller.signer).callStatic.deposit(oxau.address, amountToDeposit, caller.address, '0');
+    const depositTx = await pool.connect(caller.signer).deposit(oxau.address, amountToDeposit, caller.address, '0');
     await depositTx.wait(1);
 
     // Mine a block to ensure state is committed (important for Anvil fork)
@@ -409,7 +412,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
-    // With 1000 AGT collateral and 65% LTV, max borrow is ~650 ETH worth
+    // With 1000 OXAU collateral and 65% LTV, max borrow is ~650 ETH worth
     // Use conservative 50 USDC to ensure it works with various oracle prices
     const flashloanAmount = await convertToCurrencyDecimals(usdc.address, '50');
 
@@ -448,8 +451,8 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     expect(callerDebt.toString()).to.be.equal('50000000', 'Invalid user debt');
   });
 
-  it('Caller deposits 1000 USDT as collateral, Takes an AGT flashloan with mode = 0, does not approve the transfer of the funds', async () => {
-    const { usdt, pool, agt, users } = testEnv;
+  it('Caller deposits 1000 USDT as collateral, Takes an OXAU flashloan with mode = 0, does not approve the transfer of the funds', async () => {
+    const { usdt, pool, oxau, users } = testEnv;
     const caller = users[3];
 
     await mintTokens(usdt, caller.address, await convertToCurrencyDecimals(usdt.address, '1000'), caller.signer);
@@ -461,7 +464,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     const depositTx2 = await pool.connect(caller.signer).deposit(usdt.address, amountToDeposit, caller.address, '0');
     await depositTx2.wait(1);
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(false);
     await _mockFlashLoanReceiver.setAmountToApprove(flashAmount.div(2));
@@ -471,7 +474,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [0],
           caller.address,
@@ -481,12 +484,12 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(SAFEERC20_LOWLEVEL_CALL);
   });
 
-  it('Caller takes an AGT flashloan with mode = 1, should revert since stable borrowing is disabled', async () => {
-    const { usdt, pool, agt, users, helpersContract } = testEnv;
+  it('Caller takes an OXAU flashloan with mode = 1, should revert since stable borrowing is disabled', async () => {
+    const { usdt, pool, oxau, users, helpersContract } = testEnv;
 
     const caller = users[3];
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
@@ -494,7 +497,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       .connect(caller.signer)
       .flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
+        [oxau.address],
         [flashAmount],
         [1],
         caller.address,
@@ -503,7 +506,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       )).to.be.revertedWith(VL_STABLE_BORROWING_NOT_ENABLED);
 
     const { stableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
 
     const agtDebtToken = await getStableDebtToken(stableDebtTokenAddress);
@@ -513,12 +516,12 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     expect(callerDebt.toString()).to.be.equal('0', 'Invalid user debt');
   });
 
-  it('Caller takes an AGT flashloan with mode = 2', async () => {
-    const { usdt, pool, agt, users, helpersContract } = testEnv;
+  it('Caller takes an OXAU flashloan with mode = 2', async () => {
+    const { usdt, pool, oxau, users, helpersContract } = testEnv;
 
     const caller = users[3];
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
@@ -527,7 +530,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           caller.address,
@@ -536,18 +539,21 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         )
     );
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
 
     const agtDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
 
     const callerDebt = await agtDebtToken.balanceOf(caller.address);
 
-    expect(callerDebt.toString()).to.be.equal(ethers.utils.parseEther('10'), 'Invalid user debt');
+    expect(callerDebt.toString()).to.be.equal(
+      ethers.utils.parseEther('4').toString(),
+      'Invalid user debt'
+    );
   });
 
-  it('Caller takes an AGT flashloan with mode = 1 onBehalfOf user without allowance, should revert since stable borrowing is disabled', async () => {
-    const { usdt, pool, agt, users, helpersContract } = testEnv;
+  it('Caller takes an OXAU flashloan with mode = 1 onBehalfOf user without allowance, should revert since stable borrowing is disabled', async () => {
+    const { usdt, pool, oxau, users, helpersContract } = testEnv;
 
     const caller = users[5];
     const onBehalfOf = users[4];
@@ -564,7 +570,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       .deposit(usdt.address, amountToDeposit, onBehalfOf.address, '0');
     await depositTx3.wait(1);
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
@@ -573,7 +579,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [1],
           onBehalfOf.address,
@@ -583,13 +589,13 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(VL_STABLE_BORROWING_NOT_ENABLED);
   });
 
-  it('Caller takes an AGT flashloan with mode = 2 onBehalfOf user without allowance, should revert since allowance is 0', async () => {
-    const { usdt, pool, agt, users, helpersContract } = testEnv;
+  it('Caller takes an OXAU flashloan with mode = 2 onBehalfOf user without allowance, should revert since allowance is 0', async () => {
+    const { usdt, pool, oxau, users, helpersContract } = testEnv;
 
     const caller = users[5];
     const onBehalfOf = users[4];
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
     await _mockFlashLoanReceiver.setFailExecutionTransfer(true);
 
@@ -598,7 +604,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           onBehalfOf.address,
@@ -608,15 +614,15 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     ).to.be.revertedWith(LP_BORROW_ALLOWANCE_NOT_ENOUGH);
   });
 
-  it('Caller takes an AGT flashloan with mode = 2 onBehalfOf user with allowance. A loan for onBehalfOf is created.', async () => {
-    const { usdt, pool, agt, users, helpersContract } = testEnv;
+  it('Caller takes an OXAU flashloan with mode = 2 onBehalfOf user with allowance. A loan for onBehalfOf is created.', async () => {
+    const { usdt, pool, oxau, users, helpersContract } = testEnv;
 
     const caller = users[5];
     const onBehalfOf = users[4];
 
-    const flashAmount = ethers.utils.parseEther('10');
+    const flashAmount = ethers.utils.parseEther('4');
 
-    const reserveData = await pool.getReserveData(agt.address);
+    const reserveData = await pool.getReserveData(oxau.address);
 
     const variableDebtToken = await getVariableDebtToken(reserveData.variableDebtTokenAddress);
 
@@ -630,7 +636,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
       .connect(caller.signer)
       .callStatic.flashLoan(
         _mockFlashLoanReceiver.address,
-        [agt.address],
+        [oxau.address],
         [flashAmount],
         [2],
         onBehalfOf.address,
@@ -644,7 +650,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
         .connect(caller.signer)
         .flashLoan(
           _mockFlashLoanReceiver.address,
-          [agt.address],
+          [oxau.address],
           [flashAmount],
           [2],
           onBehalfOf.address,
@@ -654,7 +660,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     );
 
     const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(
-      agt.address
+      oxau.address
     );
 
     const agtDebtToken = await getVariableDebtToken(variableDebtTokenAddress);
@@ -662,7 +668,7 @@ makeSuite('LendingPool FlashLoan function', (testEnv: TestEnv) => {
     const onBehalfOfDebt = await agtDebtToken.balanceOf(onBehalfOf.address);
 
     expect(onBehalfOfDebt.toString()).to.be.equal(
-      ethers.utils.parseEther('10'),
+      ethers.utils.parseEther('4').toString(),
       'Invalid onBehalfOf user debt'
     );
   });

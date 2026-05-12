@@ -1,14 +1,14 @@
 {
   "title": "LendingPool: Deposit",
-  "description": "Test cases for the deposit function with AGT, USDC, USDT.",
+  "description": "Test cases for the deposit function with OXAU, USDC, USDT.",
   "stories": [
     {
-      "description": "User 0 Deposits 1000 AGT in an empty reserve",
+      "description": "User 0 Deposits 1000 OXAU in an empty reserve",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -17,7 +17,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "0"
           },
           "expected": "success"
@@ -25,7 +25,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -34,12 +34,12 @@
       ]
     },
     {
-      "description": "User 1 deposits 1000 AGT after user 0",
+      "description": "User 1 deposits 1000 OXAU after user 0",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "1"
           },
@@ -48,7 +48,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "1"
           },
           "expected": "success"
@@ -56,7 +56,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "1"
           },
@@ -189,12 +189,12 @@
       ]
     },
     {
-      "description": "User 1 deposits 0 AGT (revert expected)",
+      "description": "User 1 deposits 0 OXAU (revert expected)",
       "actions": [
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "0",
             "user": "1"
           },
@@ -204,7 +204,7 @@
       ]
     },
     {
-      "description": "User 1 deposits 100 USDC on behalf of user 2, user 2 tries to borrow 1 AGT",
+      "description": "User 1 deposits 100 USDC on behalf of user 2, user 2 tries to borrow 1 OXAU",
       "actions": [
         {
           "name": "mint",
@@ -236,7 +236,7 @@
         {
           "name": "borrow",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1",
             "borrowRateMode": "variable",
             "user": "2"

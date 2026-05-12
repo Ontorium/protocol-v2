@@ -18,22 +18,32 @@ const { expect } = require('chai');
  */
 makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
   const { VL_COLLATERAL_BALANCE_IS_0 } = ProtocolErrors;
+  let initialUsdcPrice: string;
+
+  before(async () => {
+    initialUsdcPrice = (await testEnv.oracle.getAssetPrice(testEnv.usdc.address)).toString();
+  });
+
+  afterEach(async () => {
+    const currentUsdcPrice = (await testEnv.oracle.getAssetPrice(testEnv.usdc.address)).toString();
+    if (currentUsdcPrice !== initialUsdcPrice) {
+      await setAggregatorPrice(testEnv.oracle, testEnv.usdc.address, initialUsdcPrice);
+    }
+  });
 
   it('Protocol correctly handles collateral price = 0', async () => {
-    const { agt, usdc, pool, users, oracle } = testEnv;
+    const { oxau, usdc, pool, users, oracle } = testEnv;
     const depositor = users[0];
     const borrower = users[1];
 
-    // Store original price
-    const originalUsdcPrice = (await oracle.getAssetPrice(usdc.address)).toString();
-    console.log('Original USDC price:', originalUsdcPrice);
+    console.log('Original USDC price:', initialUsdcPrice);
 
-    // Setup: Deposit AGT liquidity
+    // Setup: Deposit OXAU liquidity
     const agtAmount = parseEther('10000');
-    await mintTokens(agt, depositor.address, agtAmount, depositor.signer);
-    await agt.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    await mintTokens(oxau, depositor.address, agtAmount, depositor.signer);
+    await oxau.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(depositor.signer).deposit(agt.address, agtAmount, depositor.address, 0)
+      await pool.connect(depositor.signer).deposit(oxau.address, agtAmount, depositor.address, 0)
     );
 
     // Borrower deposits USDC as collateral
@@ -64,31 +74,21 @@ makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
     // Attempt to borrow should fail (no collateral value)
     const borrowAmount = parseEther('10');
     await expect(
-      pool.connect(borrower.signer).borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+      pool.connect(borrower.signer).borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
     ).to.be.revertedWith(VL_COLLATERAL_BALANCE_IS_0);
   });
 
   it('Health Factor becomes 0 when collateral price = 0 with existing debt', async () => {
-    const { agt, usdc, pool, users, oracle } = testEnv;
+    const { oxau, usdc, pool, users, oracle } = testEnv;
     const depositor = users[0];
     const borrower = users[2];
 
-    // Store original price
-    const originalUsdcPrice = (await oracle.getAssetPrice(usdc.address)).toString();
-
-    // Check if we need to restore price first (from previous test)
-    if (originalUsdcPrice === '0') {
-      // Previous test left price at 0, we need a fresh fork
-      console.log('Skipping test - oracle state polluted from previous test');
-      return;
-    }
-
-    // Setup: Deposit AGT liquidity
+    // Setup: Deposit OXAU liquidity
     const agtAmount = parseEther('10000');
-    await mintTokens(agt, depositor.address, agtAmount, depositor.signer);
-    await agt.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    await mintTokens(oxau, depositor.address, agtAmount, depositor.signer);
+    await oxau.connect(depositor.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(depositor.signer).deposit(agt.address, agtAmount, depositor.address, 0)
+      await pool.connect(depositor.signer).deposit(oxau.address, agtAmount, depositor.address, 0)
     );
 
     // Borrower deposits USDC as collateral
@@ -99,10 +99,11 @@ makeSuite('Oracle Edge Cases - Price Zero/Invalid', (testEnv: TestEnv) => {
       await pool.connect(borrower.signer).deposit(usdc.address, collateralAmount, borrower.address, 0)
     );
 
-    // Borrow some AGT
-    const borrowAmount = parseEther('100');
+    // 1000 USDC collateral at 75% LTV supports roughly 4.8 OXAU at the current price.
+    const borrowAmount = parseEther('4');
+
     await waitForTx(
-      await pool.connect(borrower.signer).borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+      await pool.connect(borrower.signer).borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
     );
 
     // Verify HF is healthy before

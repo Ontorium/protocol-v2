@@ -30,19 +30,19 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
   let newVariableDebtImplAddress: string;
 
   // Expected token name/symbol after upgrade
-  const UPDATED_ATOKEN_NAME = 'Aave Interest bearing AGT updated';
-  const UPDATED_ATOKEN_SYMBOL = 'aAGT';
-  const UPDATED_STABLE_DEBT_NAME = 'Aave stable debt bearing AGT updated';
-  const UPDATED_STABLE_DEBT_SYMBOL = 'stableDebtAGT';
-  const UPDATED_VARIABLE_DEBT_NAME = 'Aave variable debt bearing AGT updated';
-  const UPDATED_VARIABLE_DEBT_SYMBOL = 'variableDebtAGT';
+  const UPDATED_ATOKEN_NAME = 'Aave Interest bearing OXAU updated';
+  const UPDATED_ATOKEN_SYMBOL = 'aOXAU';
+  const UPDATED_STABLE_DEBT_NAME = 'Aave stable debt bearing OXAU updated';
+  const UPDATED_STABLE_DEBT_SYMBOL = 'stableDebtOXAU';
+  const UPDATED_VARIABLE_DEBT_NAME = 'Aave variable debt bearing OXAU updated';
+  const UPDATED_VARIABLE_DEBT_SYMBOL = 'variableDebtOXAU';
 
   before('load existing proxies and deploy new implementations', async () => {
-    const { agt, pool, helpersContract } = testEnv;
+    const { oxau, pool, helpersContract } = testEnv;
 
     // 1. Query current implementation addresses from existing proxies
     const { aTokenAddress, stableDebtTokenAddress, variableDebtTokenAddress } =
-      await helpersContract.getReserveTokensAddresses(agt.address);
+      await helpersContract.getReserveTokensAddresses(oxau.address);
 
     // Read implementation address from proxy's storage slot (EIP-1967)
     // Implementation slot: 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
@@ -72,7 +72,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     // 2. Deploy new implementations
     const aTokenInstance = await deployMockAToken([
       pool.address,
-      agt.address,
+      oxau.address,
       ZERO_ADDRESS,
       ZERO_ADDRESS,
       UPDATED_ATOKEN_NAME,
@@ -82,7 +82,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
 
     const stableDebtTokenInstance = await deployMockStableDebtToken([
       pool.address,
-      agt.address,
+      oxau.address,
       ZERO_ADDRESS,
       UPDATED_STABLE_DEBT_NAME,
       UPDATED_STABLE_DEBT_SYMBOL,
@@ -91,7 +91,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
 
     const variableDebtTokenInstance = await deployMockVariableDebtToken([
       pool.address,
-      agt.address,
+      oxau.address,
       ZERO_ADDRESS,
       UPDATED_VARIABLE_DEBT_NAME,
       UPDATED_VARIABLE_DEBT_SYMBOL,
@@ -109,10 +109,10 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     console.log('=====================================');
   });
 
-  it('Tries to update the AGT Atoken implementation with a different address than the lendingPoolManager', async () => {
-    const { agt, configurator, users, helpersContract } = testEnv;
+  it('Tries to update the OXAU Atoken implementation with a different address than the lendingPoolManager', async () => {
+    const { oxau, configurator, users, helpersContract } = testEnv;
 
-    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
     const currentAToken = await getAToken(aTokenAddress);
     const treasuryAddress = await currentAToken.RESERVE_TREASURY_ADDRESS();
 
@@ -125,7 +125,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       treasury: treasuryAddress,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_ATOKEN_NAME,
@@ -138,10 +138,10 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Upgrades the AGT Atoken implementation ', async () => {
-    const { agt, configurator, helpersContract, addressesProvider } = testEnv;
+  it('Upgrades the OXAU Atoken implementation ', async () => {
+    const { oxau, configurator, helpersContract, addressesProvider } = testEnv;
 
-    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    const { aTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
     const currentAToken = await getAToken(aTokenAddress);
     const treasuryAddress = await currentAToken.RESERVE_TREASURY_ADDRESS();
 
@@ -154,7 +154,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       treasury: treasuryAddress,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_ATOKEN_NAME,
@@ -187,8 +187,8 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     expect(tokenName).to.be.eq(UPDATED_ATOKEN_NAME, 'Invalid token name');
   });
 
-  it('Tries to update the AGT Stable debt token implementation with a different address than the lendingPoolManager', async () => {
-    const { agt, configurator, users } = testEnv;
+  it('Tries to update the OXAU Stable debt token implementation with a different address than the lendingPoolManager', async () => {
+    const { oxau, configurator, users } = testEnv;
 
     const updateDebtTokenInput: {
       asset: string;
@@ -198,7 +198,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string;
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_STABLE_DEBT_NAME,
       symbol: UPDATED_STABLE_DEBT_SYMBOL,
@@ -213,10 +213,10 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Upgrades the AGT stable debt token implementation ', async () => {
-    const { agt, configurator, helpersContract, addressesProvider } = testEnv;
+  it('Upgrades the OXAU stable debt token implementation ', async () => {
+    const { oxau, configurator, helpersContract, addressesProvider } = testEnv;
 
-    const { stableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    const { stableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
 
     const updateDebtTokenInput: {
       asset: string;
@@ -226,7 +226,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string;
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_STABLE_DEBT_NAME,
       symbol: UPDATED_STABLE_DEBT_SYMBOL,
@@ -258,8 +258,8 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     expect(tokenName).to.be.eq(UPDATED_STABLE_DEBT_NAME, 'Invalid token name');
   });
 
-  it('Tries to update the AGT variable debt token implementation with a different address than the lendingPoolManager', async () => {
-    const {agt, configurator, users} = testEnv;
+  it('Tries to update the OXAU variable debt token implementation with a different address than the lendingPoolManager', async () => {
+    const {oxau, configurator, users} = testEnv;
 
     const updateDebtTokenInput: {
       asset: string;
@@ -269,7 +269,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string;
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_VARIABLE_DEBT_NAME,
       symbol: UPDATED_VARIABLE_DEBT_SYMBOL,
@@ -284,10 +284,10 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
     ).to.be.revertedWith(CALLER_NOT_POOL_ADMIN);
   });
 
-  it('Upgrades the AGT variable debt token implementation ', async () => {
-    const {agt, configurator, helpersContract, addressesProvider} = testEnv;
+  it('Upgrades the OXAU variable debt token implementation ', async () => {
+    const {oxau, configurator, helpersContract, addressesProvider} = testEnv;
 
-    const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(agt.address);
+    const { variableDebtTokenAddress } = await helpersContract.getReserveTokensAddresses(oxau.address);
 
     const updateDebtTokenInput: {
       asset: string;
@@ -297,7 +297,7 @@ makeSuite('Upgradeability', (testEnv: TestEnv) => {
       implementation: string;
       params: string;
     } = {
-      asset: agt.address,
+      asset: oxau.address,
       incentivesController: ZERO_ADDRESS,
       name: UPDATED_VARIABLE_DEBT_NAME,
       symbol: UPDATED_VARIABLE_DEBT_SYMBOL,

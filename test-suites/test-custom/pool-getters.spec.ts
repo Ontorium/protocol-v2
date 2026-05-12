@@ -10,9 +10,9 @@ const { expect } = require('chai');
 
 makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
   describe('getReserveData', () => {
-    it('Returns correct initial reserve data for AGT', async () => {
-      const { agt, pool } = testEnv;
-      const reserveData = await pool.getReserveData(agt.address);
+    it('Returns correct initial reserve data for OXAU', async () => {
+      const { oxau, pool } = testEnv;
+      const reserveData = await pool.getReserveData(oxau.address);
 
       // Initial state checks
       expect(reserveData.aTokenAddress).to.not.equal(ZERO_ADDRESS);
@@ -41,14 +41,14 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
   });
 
   describe('getReservesList', () => {
-    it('Returns all 3 reserves (AGT, USDC, USDT)', async () => {
-      const { pool, agt, usdc, usdt } = testEnv;
+    it('Returns all 3 reserves (OXAU, USDC, USDT)', async () => {
+      const { pool, oxau, usdc, usdt } = testEnv;
       const reserves = await pool.getReservesList();
 
       expect(reserves.length).to.be.gte(3);
 
       const reserveAddresses = reserves.map((r: string) => r.toLowerCase());
-      expect(reserveAddresses).to.include(agt.address.toLowerCase());
+      expect(reserveAddresses).to.include(oxau.address.toLowerCase());
       expect(reserveAddresses).to.include(usdc.address.toLowerCase());
       expect(reserveAddresses).to.include(usdt.address.toLowerCase());
     });
@@ -89,30 +89,30 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('Returns correct data after borrow', async () => {
-      const { pool, agt, deployer, users, helpersContract } = testEnv;
+      const { pool, oxau, deployer, users, helpersContract } = testEnv;
       const borrower = users[0]; // User from previous test who has USDC collateral
 
-      // Setup AGT liquidity using deployer
-      const agtAmount = parseEther('10000');
-      await mintTokens(agt, deployer.address, agtAmount, deployer.signer);
-      await agt.connect(deployer.signer).approve(pool.address, MAX_UINT_AMOUNT);
+      // Setup OXAU liquidity using deployer
+      const oxauAmount = parseEther('10000');
+      await mintTokens(oxau, deployer.address, oxauAmount, deployer.signer);
+      await oxau.connect(deployer.signer).approve(pool.address, MAX_UINT_AMOUNT);
       await waitForTx(
-        await pool.connect(deployer.signer).deposit(agt.address, agtAmount, deployer.address, 0)
+        await pool.connect(deployer.signer).deposit(oxau.address, oxauAmount, deployer.address, 0)
       );
 
       // Verify liquidity is available
-      const reserveData = await helpersContract.getReserveData(agt.address);
-      console.log('AGT liquidity available:', reserveData.availableLiquidity.toString());
+      const reserveData = await helpersContract.getReserveData(oxau.address);
+      console.log('OXAU liquidity available:', reserveData.availableLiquidity.toString());
 
       const userDataBefore = await pool.getUserAccountData(borrower.address);
       console.log('User available borrows before:', userDataBefore.availableBorrowsETH.toString());
 
-      const borrowAmount = parseEther('100');
+      const borrowAmount = parseEther('4');
 
       await waitForTx(
         await pool
           .connect(borrower.signer)
-          .borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+          .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
       );
 
       const userDataAfter = await pool.getUserAccountData(borrower.address);
@@ -123,17 +123,17 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('Health factor decreases with more debt', async () => {
-      const { pool, agt, users } = testEnv;
+      const { pool, oxau, users } = testEnv;
       const borrower = users[0];
 
       const userDataBefore = await pool.getUserAccountData(borrower.address);
-      // Borrow more AGT (continuing from previous test)
-      const borrowAmount = parseEther('100');
+      // Borrow more OXAU (continuing from previous test)
+      const borrowAmount = parseEther('0.5');
 
       await waitForTx(
         await pool
           .connect(borrower.signer)
-          .borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+          .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
       );
 
       const userDataAfter = await pool.getUserAccountData(borrower.address);
@@ -145,7 +145,7 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
   describe('getUserConfiguration', () => {
     it('Returns correct user configuration bitmap', async () => {
       const { pool, users } = testEnv;
-      const user = users[0]; // User with USDC deposit and AGT borrow
+      const user = users[0]; // User with USDC deposit and OXAU borrow
 
       const userConfig = await pool.getUserConfiguration(user.address);
 
@@ -164,9 +164,9 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
   });
 
   describe('getConfiguration', () => {
-    it('Returns valid configuration for AGT', async () => {
-      const { pool, agt } = testEnv;
-      const config = await pool.getConfiguration(agt.address);
+    it('Returns valid configuration for OXAU', async () => {
+      const { pool, oxau } = testEnv;
+      const config = await pool.getConfiguration(oxau.address);
 
       // Configuration data should be non-zero for initialized reserve
       expect(config.data).to.not.equal(0);
@@ -197,9 +197,9 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('Returns >= RAY for reserve with activity', async () => {
-      const { pool, agt } = testEnv;
-      // AGT has borrows from previous tests
-      const normalizedIncome = await pool.getReserveNormalizedIncome(agt.address);
+      const { pool, oxau } = testEnv;
+      // OXAU has borrows from previous tests
+      const normalizedIncome = await pool.getReserveNormalizedIncome(oxau.address);
 
       // Should be >= RAY as interest accrues
       expect(normalizedIncome).to.be.gte(RAY);
@@ -216,9 +216,9 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('Returns >= RAY for reserve with borrows', async () => {
-      const { pool, agt } = testEnv;
-      // AGT has borrows from previous tests
-      const normalizedDebt = await pool.getReserveNormalizedVariableDebt(agt.address);
+      const { pool, oxau } = testEnv;
+      // OXAU has borrows from previous tests
+      const normalizedDebt = await pool.getReserveNormalizedVariableDebt(oxau.address);
 
       // Should be >= RAY as interest accrues on borrows
       expect(normalizedDebt).to.be.gte(RAY);
@@ -247,13 +247,13 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
 
   describe('DataProvider helper functions', () => {
     it('getAllReservesTokens returns all reserve tokens', async () => {
-      const { helpersContract, agt, usdc, usdt } = testEnv;
+      const { helpersContract, oxau, usdc, usdt } = testEnv;
       const reserveTokens = await helpersContract.getAllReservesTokens();
 
       expect(reserveTokens.length).to.be.gte(3);
 
       const symbols = reserveTokens.map((t: { symbol: string }) => t.symbol);
-      expect(symbols).to.include('AGT');
+      expect(symbols).to.include('OXAU');
       expect(symbols).to.include('USDC');
       expect(symbols).to.include('USDT');
     });
@@ -264,13 +264,13 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
 
       expect(aTokens.length).to.be.gte(3);
 
-      // Check that aToken symbols contain AGT, USDC, USDT
+      // Check that aToken symbols contain OXAU, USDC, USDT
       const symbols = aTokens.map((t: { symbol: string }) => t.symbol);
-      const hasAGT = symbols.some((s: string) => s.includes('AGT'));
+      const hasOXAU = symbols.some((s: string) => s.includes('OXAU'));
       const hasUSDC = symbols.some((s: string) => s.includes('USDC'));
       const hasUSDT = symbols.some((s: string) => s.includes('USDT'));
 
-      expect(hasAGT).to.be.true;
+      expect(hasOXAU).to.be.true;
       expect(hasUSDC).to.be.true;
       expect(hasUSDT).to.be.true;
     });
@@ -291,8 +291,8 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('getReserveData returns reserve state', async () => {
-      const { helpersContract, agt } = testEnv;
-      const reserveData = await helpersContract.getReserveData(agt.address);
+      const { helpersContract, oxau } = testEnv;
+      const reserveData = await helpersContract.getReserveData(oxau.address);
 
       expect(reserveData.availableLiquidity).to.be.gte(0);
       expect(reserveData.liquidityRate).to.be.gte(0);
@@ -313,8 +313,8 @@ makeSuite('Custom Market - Pool Getter Functions', (testEnv: TestEnv) => {
     });
 
     it('getReserveTokensAddresses returns all token addresses', async () => {
-      const { helpersContract, agt } = testEnv;
-      const tokens = await helpersContract.getReserveTokensAddresses(agt.address);
+      const { helpersContract, oxau } = testEnv;
+      const tokens = await helpersContract.getReserveTokensAddresses(oxau.address);
 
       expect(tokens.aTokenAddress).to.not.equal(ZERO_ADDRESS);
       expect(tokens.stableDebtTokenAddress).to.not.equal(ZERO_ADDRESS);

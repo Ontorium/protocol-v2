@@ -5,10 +5,12 @@ import {IPriceOracle} from '../../interfaces/IPriceOracle.sol';
 
 contract PriceOracle is IPriceOracle {
   mapping(address => uint256) prices;
+  mapping(address => uint256) roundIds;
   uint256 ethPriceUsd;
 
   event AssetPriceUpdated(address _asset, uint256 _price, uint256 timestamp);
   event EthPriceUpdated(uint256 _price, uint256 timestamp);
+  event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 timestamp);
 
   function getAssetPrice(address _asset) external view override returns (uint256) {
     return prices[_asset];
@@ -16,7 +18,9 @@ contract PriceOracle is IPriceOracle {
 
   function setAssetPrice(address _asset, uint256 _price) external override {
     prices[_asset] = _price;
+    roundIds[_asset]++;
     emit AssetPriceUpdated(_asset, _price, block.timestamp);
+    emit AnswerUpdated(int256(_price), roundIds[_asset], block.timestamp);
   }
 
   function getEthUsdPrice() external view returns (uint256) {

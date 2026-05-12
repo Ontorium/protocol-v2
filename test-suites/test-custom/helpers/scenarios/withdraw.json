@@ -1,14 +1,14 @@
 {
   "title": "LendingPool: Withdraw",
-  "description": "Test cases for withdraw function with AGT, USDC, USDT.",
+  "description": "Test cases for withdraw function with OXAU, USDC, USDT.",
   "stories": [
     {
-      "description": "User 0 Deposits 1000 AGT in an empty reserve",
+      "description": "User 0 Deposits 1000 OXAU in an empty reserve",
       "actions": [
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -17,7 +17,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "0"
           },
           "expected": "success"
@@ -25,7 +25,7 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "1000",
             "user": "0"
           },
@@ -34,12 +34,12 @@
       ]
     },
     {
-      "description": "User 0 withdraws half of the deposited AGT",
+      "description": "User 0 withdraws half of the deposited OXAU",
       "actions": [
         {
           "name": "withdraw",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "500",
             "user": "0"
           },
@@ -48,12 +48,12 @@
       ]
     },
     {
-      "description": "User 0 withdraws remaining half of the deposited AGT",
+      "description": "User 0 withdraws remaining half of the deposited OXAU",
       "actions": [
         {
           "name": "withdraw",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "amount": "-1",
             "user": "0"
           },
@@ -180,7 +180,7 @@
       ]
     },
     {
-      "description": "User 6 deposits 1000 USDC, user 7 deposits 1000 USDT and 100 AGT, borrows 800 USDC at variable. User 7 tries to withdraw all USDT (fails due to HF)",
+      "description": "User 6 deposits 1000 USDC, user 7 deposits 1000 USDT and 5 OXAU, borrows 800 USDC at variable. User 7 tries to withdraw all USDT (fails due to HF)",
       "actions": [
         {
           "name": "mint",
@@ -237,8 +237,8 @@
         {
           "name": "mint",
           "args": {
-            "reserve": "AGT",
-            "amount": "100",
+            "reserve": "OXAU",
+            "amount": "5",
             "user": "7"
           },
           "expected": "success"
@@ -246,7 +246,7 @@
         {
           "name": "approve",
           "args": {
-            "reserve": "AGT",
+            "reserve": "OXAU",
             "user": "7"
           },
           "expected": "success"
@@ -254,8 +254,8 @@
         {
           "name": "deposit",
           "args": {
-            "reserve": "AGT",
-            "amount": "100",
+            "reserve": "OXAU",
+            "amount": "5",
             "user": "7"
           },
           "expected": "success"
@@ -283,13 +283,13 @@
       ]
     },
     {
-      "description": "User 7 tries to withdraw a small amount of AGT that keeps HF > 1",
+      "description": "User 7 tries to withdraw a small amount of OXAU that keeps HF > 1",
       "actions": [
         {
           "name": "withdraw",
           "args": {
-            "reserve": "AGT",
-            "amount": "10",
+            "reserve": "OXAU",
+            "amount": "0.5",
             "user": "7"
           },
           "expected": "success"

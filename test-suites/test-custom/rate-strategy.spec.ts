@@ -3,7 +3,7 @@ import { APPROVAL_AMOUNT_LENDING_POOL, PERCENTAGE_FACTOR, RAY } from '../../help
 
 import { rateStrategyCustom } from '../../markets/custom/rateStrategies';
 
-import { strategyAGT } from '../../markets/custom/reservesConfigs';
+import { strategyOXAU } from '../../markets/custom/reservesConfigs';
 import {
   AToken,
   DefaultReserveInterestRateStrategy,
@@ -17,23 +17,23 @@ const { expect } = require('chai');
 
 makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
   let strategyInstance: DefaultReserveInterestRateStrategy;
-  let agt: MintableERC20;
-  let aAGT: AToken;
+  let oxau: MintableERC20;
+  let aOXAU: AToken;
 
   before(async () => {
-    agt = testEnv.agt;
-    aAGT = testEnv.aAGT;
+    oxau = testEnv.oxau;
+    aOXAU = testEnv.aOXAU;
 
     // Call LendingPool.getReserveData() directly to get interestRateStrategyAddress
     // (AaveProtocolDataProvider.getReserveData() does not return interestRateStrategyAddress)
     const { pool } = testEnv;
-    const reserveData = await pool.getReserveData(agt.address);
+    const reserveData = await pool.getReserveData(oxau.address);
     const strategyAddress = reserveData.interestRateStrategyAddress;
 
     console.log('=== Loaded Contract Addresses ===');
     console.log('  LendingPool:', pool.address);
-    console.log('  AGT Token:', agt.address);
-    console.log('  aAGT Token:', aAGT.address);
+    console.log('  OXAU Token:', oxau.address);
+    console.log('  aOXAU Token:', aOXAU.address);
     console.log('  InterestRateStrategy:', strategyAddress);
     console.log('=================================');
 
@@ -49,14 +49,14 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
       1: currentStableBorrowRate,
       2: currentVariableBorrowRate,
     } = await strategyInstance['calculateInterestRates(address,address,uint256,uint256,uint256,uint256,uint256,uint256)'](
-      agt.address,
-      aAGT.address,
+      oxau.address,
+      aOXAU.address,
       0,
       0,
       0,
       0,
       0,
-      strategyAGT.reserveFactor
+      strategyOXAU.reserveFactor
     );
 
     expect(currentLiquidityRate.toString()).to.be.equal('0', 'Invalid liquidity rate');
@@ -76,14 +76,14 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
       1: currentStableBorrowRate,
       2: currentVariableBorrowRate,
     } = await strategyInstance['calculateInterestRates(address,address,uint256,uint256,uint256,uint256,uint256,uint256)'](
-      agt.address,
-      aAGT.address,
+      oxau.address,
+      aOXAU.address,
       '200000000000000000',
       '0',
       '0',
       '800000000000000000',
       '0',
-      strategyAGT.reserveFactor
+      strategyOXAU.reserveFactor
     );
 
     const expectedVariableRate = new BigNumber(rateStrategyCustom.baseVariableBorrowRate).plus(
@@ -93,7 +93,7 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
     expect(currentLiquidityRate.toString()).to.be.equal(
       expectedVariableRate
         .times(0.8)
-        .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyAGT.reserveFactor))
+        .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyOXAU.reserveFactor))
         .toFixed(0),
       'Invalid liquidity rate'
     );
@@ -115,14 +115,14 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
       1: currentStableBorrowRate,
       2: currentVariableBorrowRate,
     } = await strategyInstance['calculateInterestRates(address,address,uint256,uint256,uint256,uint256,uint256,uint256)'](
-      agt.address,
-      aAGT.address,
+      oxau.address,
+      aOXAU.address,
       '0',
       '0',
       '0',
       '800000000000000000',
       '0',
-      strategyAGT.reserveFactor
+      strategyOXAU.reserveFactor
     );
 
     const expectedVariableRate = new BigNumber(rateStrategyCustom.baseVariableBorrowRate)
@@ -131,7 +131,7 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
 
     expect(currentLiquidityRate.toString()).to.be.equal(
       expectedVariableRate
-        .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyAGT.reserveFactor))
+        .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyOXAU.reserveFactor))
         .toFixed(0),
       'Invalid liquidity rate'
     );
@@ -157,14 +157,14 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
       1: currentStableBorrowRate,
       2: currentVariableBorrowRate,
     } = await strategyInstance['calculateInterestRates(address,address,uint256,uint256,uint256,uint256,uint256,uint256)'](
-      agt.address,
-      aAGT.address,
+      oxau.address,
+      aOXAU.address,
       '0',
       '0',
       '400000000000000000',
       '400000000000000000',
       '100000000000000000000000000',
-      strategyAGT.reserveFactor
+      strategyOXAU.reserveFactor
     );
 
     const expectedVariableRate = new BigNumber(rateStrategyCustom.baseVariableBorrowRate)
@@ -174,7 +174,7 @@ makeSuite('Interest rate strategy tests', (testEnv: TestEnv) => {
     const expectedLiquidityRate = new BigNumber(
       currentVariableBorrowRate.add('100000000000000000000000000').div(2).toString()
     )
-      .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyAGT.reserveFactor))
+      .percentMul(new BigNumber(PERCENTAGE_FACTOR).minus(strategyOXAU.reserveFactor))
       .toFixed(0);
 
     expect(currentLiquidityRate.toString()).to.be.equal(

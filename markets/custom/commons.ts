@@ -7,18 +7,18 @@ import { ICommonConfiguration, eEthereumNetwork, eArbitrumNetwork } from '../../
 // ----------------
 
 export const CommonsConfig: ICommonConfiguration = {
-  MarketId: 'Custom AGT market',
-  ATokenNamePrefix: 'Aave interest bearing',
-  StableDebtTokenNamePrefix: 'Aave stable debt bearing',
-  VariableDebtTokenNamePrefix: 'Aave variable debt bearing',
-  SymbolPrefix: 'c',
-  ProviderId: 0, // Overridden in index.ts
+  MarketId: 'Aqua Arbitrum Market',
+  ATokenNamePrefix: 'Aqua Arbitrum Market',
+  StableDebtTokenNamePrefix: 'Aqua stable debt',
+  VariableDebtTokenNamePrefix: 'Aqua variable debt',
+  SymbolPrefix: 'aqua',
+  ProviderId: 1, // Overridden in index.ts
   OracleQuoteCurrency: 'USD',
   OracleQuoteUnit: oneUsd.toString(),
   ProtocolGlobalParams: {
     TokenDistributorPercentageBase: '10000',
     MockUsdPriceInWei: '5848466240000000',
-    UsdAddress: '0x10F7Fc1F91Ba351f9C629c5947AD69bD03C05b96',
+    UsdAddress: '0x0000000000000000000000000000000000000000',
     NilAddress: '0x0000000000000000000000000000000000000000',
     OneAddress: '0x0000000000000000000000000000000000000001',
     AaveReferral: '0',
@@ -32,7 +32,7 @@ export const CommonsConfig: ICommonConfiguration = {
     AllAssetsInitialPrices: {
       // For testing: All tokens at same price to simplify math
       // 1 token = 1 USD value for easy calculation
-      AGT: oneUsd.toFixed(),
+      OXAU: oneUsd.multipliedBy(155).toFixed(),
       USDC: oneUsd.toFixed(),
       USDT: oneUsd.toFixed(),
       USD: oneUsd.toFixed(),
@@ -40,7 +40,7 @@ export const CommonsConfig: ICommonConfiguration = {
   },
   // TODO: reorg alphabetically, checking the reason of tests failing
   LendingRateOracleRatesCommon: {
-    AGT: {
+    OXAU: {
       borrowRate: oneRay.multipliedBy(0.03).toFixed(),
     },
     USDC: {
@@ -197,7 +197,7 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
-    [eArbitrumNetwork.arbitrumSepolia]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '0x9129f1DA644dAa82356261BC8B6411D0E9187E54',
     [eArbitrumNetwork.arbitrum]: '',
   },
   FallbackOracle: {
@@ -223,8 +223,14 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: {},
     [eEthereumNetwork.tenderly]: {},
     [eEthereumNetwork.goerli]: {},
-    [eArbitrumNetwork.arbitrumSepolia]: {},
-    [eArbitrumNetwork.arbitrum]: {},
+    [eArbitrumNetwork.arbitrumSepolia]: {
+      OXAU: '0xed7c63dce7da2875237e966416fddfc6a1c5c67b',
+    },
+    [eArbitrumNetwork.arbitrum]: {
+      OXAU: '0x14c25464328db0ded6117f70e7710518d631e26e',
+      USDT: '0x3f3f5dF88dC9F13eac63DF89EC16ef6e7E25DdE7',
+      USDC: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3',
+    },
   },
   ReserveAssets: {
     [eEthereumNetwork.coverage]: {},
@@ -293,8 +299,8 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: '',
     [eEthereumNetwork.tenderly]: '',
     [eEthereumNetwork.goerli]: '',
-    [eArbitrumNetwork.arbitrumSepolia]: '0x0eD039d012B6c241e1636af8A0d2B6eC8c972b11', // Deployer address as treasury
-    [eArbitrumNetwork.arbitrum]: '',
+    [eArbitrumNetwork.arbitrumSepolia]: '0x066e6168b4cA035Ae7B9f72608d4804836CF7E32', // Deployer address as treasury
+    [eArbitrumNetwork.arbitrum]: '0x5110ea7904d71B7Ca10b0f4475400333AF068bfc',
   },
   IncentivesController: {
     [eEthereumNetwork.coverage]: ZERO_ADDRESS,
@@ -306,7 +312,7 @@ export const CommonsConfig: ICommonConfiguration = {
     [eEthereumNetwork.main]: ZERO_ADDRESS,
     [eEthereumNetwork.tenderly]: ZERO_ADDRESS,
     [eEthereumNetwork.goerli]: ZERO_ADDRESS,
-    [eArbitrumNetwork.arbitrumSepolia]: ZERO_ADDRESS,
-    [eArbitrumNetwork.arbitrum]: ZERO_ADDRESS,
+    [eArbitrumNetwork.arbitrumSepolia]: '0xD4752392645a720c9403B779d4E086730B0397b1',
+    [eArbitrumNetwork.arbitrum]: '0x5baFA7337e1Bd271E5EC6cfEBB8Fce00D77f4748',
   },
 };

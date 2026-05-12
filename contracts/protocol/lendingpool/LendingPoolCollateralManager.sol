@@ -111,7 +111,8 @@ contract LendingPoolCollateralManager is
       userConfig,
       vars.healthFactor,
       vars.userStableDebt,
-      vars.userVariableDebt
+      vars.userVariableDebt,
+      _priceOracleSentinel
     );
 
     if (Errors.CollateralManagerErrors(vars.errorCode) != Errors.CollateralManagerErrors.NO_ERROR) {

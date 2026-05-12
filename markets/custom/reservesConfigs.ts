@@ -2,8 +2,8 @@ import { eContractid, IReserveParams } from '../../helpers/types';
 
 import { rateStrategyCustom } from './rateStrategies';
 
-// AGT (Gold-pegged RWA token)
-export const strategyAGT: IReserveParams = {
+// OXAU (Gold-pegged RWA token)
+export const strategyOXAU: IReserveParams = {
   strategy: rateStrategyCustom,
   baseLTVAsCollateral: '6500', // 65% LTV
   liquidationThreshold: '7500', // 75%

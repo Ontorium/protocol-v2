@@ -2,7 +2,7 @@ import { oneRay, ZERO_ADDRESS } from '../../helpers/constants';
 import { ICustomConfiguration, eEthereumNetwork, eArbitrumNetwork } from '../../helpers/types';
 
 import { CommonsConfig } from './commons';
-import { strategyAGT, strategyUSDC, strategyUSDT } from './reservesConfigs';
+import { strategyOXAU, strategyUSDC, strategyUSDT } from './reservesConfigs';
 
 // ----------------
 // POOL--SPECIFIC PARAMS
@@ -10,10 +10,10 @@ import { strategyAGT, strategyUSDC, strategyUSDT } from './reservesConfigs';
 
 export const CustomConfig: ICustomConfiguration = {
   ...CommonsConfig,
-  MarketId: 'Custom AGT market',
+  MarketId: 'Aqua Arbitrum Market',
   ProviderId: 100, // Custom provider ID
   ReservesConfig: {
-    AGT: strategyAGT,
+    OXAU: strategyOXAU,
     USDC: strategyUSDC,
     USDT: strategyUSDT,
   },
@@ -29,11 +29,15 @@ export const CustomConfig: ICustomConfiguration = {
     [eEthereumNetwork.localhost]: {},
     // Arbitrum Sepolia testnet token addresses
     [eArbitrumNetwork.arbitrumSepolia]: {
-      AGT: '0x408ae96165741d12f811efeba864f1ba8742cd8c',
-      USDC: '0xC3437DA5e936D3449D6F0700A71847305e9357Be',
-      USDT: '0x6777ab1c1EBFC40d3442202158bEA959E04AC744',
+      OXAU: '0x0f7b1a647f3bcafb9d2090f6405c5ab43bca637a',
+      USDC: '0x9848bb9287ba3f87c8098dbf7533e604030fe912',
+      USDT: '0xcf7b084757873062fc7a86320f400380f9358cda',
     },
-    [eArbitrumNetwork.arbitrum]: {},
+    [eArbitrumNetwork.arbitrum]: {
+      OXAU: '0x1e5cdeac41bcccdaa12f304cb3c89d4e18bda665',
+      USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+    },
   },
 };
 

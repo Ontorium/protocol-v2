@@ -1,5 +1,5 @@
 import { makeSuite, TestEnv } from './helpers/make-suite';
-import { strategyAGT, strategyUSDC, strategyUSDT } from '../../markets/custom/reservesConfigs';
+import { strategyOXAU, strategyUSDC, strategyUSDT } from '../../markets/custom/reservesConfigs';
 
 const { expect } = require('chai');
 
@@ -8,58 +8,58 @@ const { expect } = require('chai');
  * from markets/custom/reservesConfigs.ts
  */
 makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv) => {
-  describe('AGT Reserve Configuration', () => {
+  describe('OXAU Reserve Configuration', () => {
     it('Should have correct LTV (65%)', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.ltv.toString()).to.be.equal(strategyAGT.baseLTVAsCollateral);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.ltv.toString()).to.be.equal(strategyOXAU.baseLTVAsCollateral);
     });
 
     it('Should have correct liquidation threshold (75%)', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.liquidationThreshold.toString()).to.be.equal(strategyAGT.liquidationThreshold);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.liquidationThreshold.toString()).to.be.equal(strategyOXAU.liquidationThreshold);
     });
 
     it('Should have correct liquidation bonus (5%)', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.liquidationBonus.toString()).to.be.equal(strategyAGT.liquidationBonus);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.liquidationBonus.toString()).to.be.equal(strategyOXAU.liquidationBonus);
     });
 
     it('Should have borrowing enabled', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.borrowingEnabled).to.be.equal(strategyAGT.borrowingEnabled);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.borrowingEnabled).to.be.equal(strategyOXAU.borrowingEnabled);
     });
 
     it('Should have stable borrow rate disabled', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.stableBorrowRateEnabled).to.be.equal(strategyAGT.stableBorrowRateEnabled);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.stableBorrowRateEnabled).to.be.equal(strategyOXAU.stableBorrowRateEnabled);
     });
 
     it('Should have correct decimals (18)', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.decimals.toString()).to.be.equal(strategyAGT.reserveDecimals);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.decimals.toString()).to.be.equal(strategyOXAU.reserveDecimals);
     });
 
     it('Should have correct reserve factor (10%)', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
-      expect(config.reserveFactor.toString()).to.be.equal(strategyAGT.reserveFactor);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
+      expect(config.reserveFactor.toString()).to.be.equal(strategyOXAU.reserveFactor);
     });
 
     it('Should be active', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
       expect(config.isActive).to.be.true;
     });
 
     it('Should not be frozen', async () => {
-      const { agt, helpersContract } = testEnv;
-      const config = await helpersContract.getReserveConfigurationData(agt.address);
+      const { oxau, helpersContract } = testEnv;
+      const config = await helpersContract.getReserveConfigurationData(oxau.address);
       expect(config.isFrozen).to.be.false;
     });
   });
@@ -177,28 +177,28 @@ makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv)
   });
 
   describe('Cross-asset Configuration Comparison', () => {
-    it('AGT should have lower LTV than stablecoins', async () => {
-      const { agt, usdc, helpersContract } = testEnv;
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+    it('OXAU should have lower LTV than stablecoins', async () => {
+      const { oxau, usdc, helpersContract } = testEnv;
+      const oxauConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
 
-      expect(agtConfig.ltv).to.be.lt(usdcConfig.ltv);
+      expect(oxauConfig.ltv).to.be.lt(usdcConfig.ltv);
     });
 
-    it('AGT should have lower liquidation threshold than stablecoins', async () => {
-      const { agt, usdc, helpersContract } = testEnv;
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+    it('OXAU should have lower liquidation threshold than stablecoins', async () => {
+      const { oxau, usdc, helpersContract } = testEnv;
+      const oxauConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
 
-      expect(agtConfig.liquidationThreshold).to.be.lt(usdcConfig.liquidationThreshold);
+      expect(oxauConfig.liquidationThreshold).to.be.lt(usdcConfig.liquidationThreshold);
     });
 
-    it('AGT should have higher liquidation bonus than stablecoins (more volatile)', async () => {
-      const { agt, usdc, helpersContract } = testEnv;
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+    it('OXAU should have higher liquidation bonus than stablecoins (more volatile)', async () => {
+      const { oxau, usdc, helpersContract } = testEnv;
+      const oxauConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
 
-      expect(agtConfig.liquidationBonus).to.be.gt(usdcConfig.liquidationBonus);
+      expect(oxauConfig.liquidationBonus).to.be.gt(usdcConfig.liquidationBonus);
     });
 
     it('USDC and USDT should have identical configurations', async () => {
@@ -214,21 +214,21 @@ makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv)
     });
 
     it('All reserves should have stable borrow rate disabled', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+      const oxauConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
       const usdtConfig = await helpersContract.getReserveConfigurationData(usdt.address);
 
-      expect(agtConfig.stableBorrowRateEnabled).to.be.false;
+      expect(oxauConfig.stableBorrowRateEnabled).to.be.false;
       expect(usdcConfig.stableBorrowRateEnabled).to.be.false;
       expect(usdtConfig.stableBorrowRateEnabled).to.be.false;
     });
 
     it('All reserves should have the same reserve factor', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtConfig = await helpersContract.getReserveConfigurationData(agt.address);
+      const agtConfig = await helpersContract.getReserveConfigurationData(oxau.address);
       const usdcConfig = await helpersContract.getReserveConfigurationData(usdc.address);
       const usdtConfig = await helpersContract.getReserveConfigurationData(usdt.address);
 
@@ -239,9 +239,9 @@ makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv)
 
   describe('Reserve Token Addresses', () => {
     it('All reserves should have valid aToken addresses', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtTokens = await helpersContract.getReserveTokensAddresses(agt.address);
+      const agtTokens = await helpersContract.getReserveTokensAddresses(oxau.address);
       const usdcTokens = await helpersContract.getReserveTokensAddresses(usdc.address);
       const usdtTokens = await helpersContract.getReserveTokensAddresses(usdt.address);
 
@@ -251,9 +251,9 @@ makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv)
     });
 
     it('All reserves should have valid variable debt token addresses', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtTokens = await helpersContract.getReserveTokensAddresses(agt.address);
+      const agtTokens = await helpersContract.getReserveTokensAddresses(oxau.address);
       const usdcTokens = await helpersContract.getReserveTokensAddresses(usdc.address);
       const usdtTokens = await helpersContract.getReserveTokensAddresses(usdt.address);
 
@@ -263,9 +263,9 @@ makeSuite('Custom Market - Reserve Configuration Validation', (testEnv: TestEnv)
     });
 
     it('All reserves should have valid stable debt token addresses', async () => {
-      const { agt, usdc, usdt, helpersContract } = testEnv;
+      const { oxau, usdc, usdt, helpersContract } = testEnv;
 
-      const agtTokens = await helpersContract.getReserveTokensAddresses(agt.address);
+      const agtTokens = await helpersContract.getReserveTokensAddresses(oxau.address);
       const usdcTokens = await helpersContract.getReserveTokensAddresses(usdc.address);
       const usdtTokens = await helpersContract.getReserveTokensAddresses(usdt.address);
 

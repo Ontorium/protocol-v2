@@ -12,6 +12,7 @@ const scenarioFolder = './test-suites/test-custom/helpers/scenarios/';
 const selectedScenarios: string[] = [];
 
 fs.readdirSync(scenarioFolder).forEach((file) => {
+  if (!file.endsWith('.json') || file.startsWith('._')) return;
   if (selectedScenarios.length > 0 && !selectedScenarios.includes(file)) return;
 
   const scenario = require(`./helpers/scenarios/${file}`);

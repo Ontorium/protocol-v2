@@ -33,7 +33,7 @@ export async function mintTokens(
     // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
     const tokenContract = new hre.ethers.Contract(token.address, tokenAbi, directProvider);
 
-    // For AGT token, mint via minters function
+    // For OXAU token, mint via minters function
     let isGoldToken = false;
     let minterAddress: string | null = null;
 
@@ -44,11 +44,11 @@ export async function mintTokens(
         minterAddress = minters[0];
       }
     } catch (e) {
-      // Not a GoldToken (AGT)
+      // Not a GoldToken (OXAU)
     }
 
     if (isGoldToken && minterAddress) {
-      // AGT: Mint via minter
+      // OXAU: Mint via minter
       await directProvider.send('anvil_impersonateAccount', [minterAddress]);
       await directProvider.send('anvil_setBalance', [minterAddress, '0x56BC75E2D63100000']);
 
@@ -326,8 +326,88 @@ export async function stopImpersonatingRegistryOwner(registry: any): Promise<voi
  */
 export async function setAggregatorPrice(oracle: any, asset: string, newPrice: string): Promise<void> {
   if (!process.env.USE_DEPLOYED) {
-    // In local mode, call PriceOracle.setAssetPrice directly
-    await oracle.setAssetPrice(asset, newPrice);
+    // Resolve the oracle the LendingPool actually reads from. The `oracle` arg
+    // (testEnv.oracle) is resolved from DB and may diverge from pool's view in
+    // FORK mode (custom:dev sets pool's priceOracle to AaveOracle, but DB still
+    // points at the fallback PriceOracle).
+    const { getLendingPoolAddressesProvider } = require('../../../helpers/contracts-getters');
+    const addressesProvider = await getLendingPoolAddressesProvider();
+    const poolOracleAddress: string = await addressesProvider.getPriceOracle();
+
+    // AaveOracle exposes getFallbackOracle(); PriceOracle does not. Use that as a probe.
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    let fallbackOracleAddress: string = hre.ethers.constants.AddressZero;
+    let isAaveOracle = false;
+    try {
+      // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+      const probe = new hre.ethers.Contract(
+        poolOracleAddress,
+        ['function getFallbackOracle() view returns (address)'],
+        // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+        hre.ethers.provider
+      );
+      fallbackOracleAddress = await probe.getFallbackOracle();
+      isAaveOracle = true;
+    } catch {
+      isAaveOracle = false;
+    }
+
+    if (!isAaveOracle) {
+      // PriceOracle path (buildTestEnv on local hardhat without FORK)
+      await oracle.setAssetPrice(asset, newPrice);
+      return;
+    }
+
+    // AaveOracle path (custom:dev on FORK): redeploy MockAggregator and rewire
+    // setAssetSources, plus mirror to fallback PriceOracle so testEnv.oracle
+    // (still bound to fallback via DB) reads the same value.
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    const [deployer] = await hre.ethers.getSigners();
+
+    const MockAggregatorArtifact = await hre.artifacts.readArtifact('MockAggregator');
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    const MockAggregatorFactory = new hre.ethers.ContractFactory(
+      MockAggregatorArtifact.abi,
+      MockAggregatorArtifact.bytecode,
+      deployer
+    );
+    const newAggregator = await MockAggregatorFactory.deploy(newPrice, 8);
+    await newAggregator.deployed();
+
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    const aaveOracle = new hre.ethers.Contract(
+      poolOracleAddress,
+      ['function setAssetSources(address[] calldata, address[] calldata) external'],
+      deployer
+    );
+    await (await aaveOracle.setAssetSources([asset], [newAggregator.address])).wait();
+
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    if (fallbackOracleAddress !== hre.ethers.constants.AddressZero) {
+      // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+      const fallback = new hre.ethers.Contract(
+        fallbackOracleAddress,
+        ['function setAssetPrice(address, uint256) external'],
+        deployer
+      );
+      await (await fallback.setAssetPrice(asset, newPrice)).wait();
+    }
+
+    // Verify pool's oracle now returns the requested price
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    const verify = new hre.ethers.Contract(
+      poolOracleAddress,
+      ['function getAssetPrice(address) view returns (uint256)'],
+      // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+      hre.ethers.provider
+    );
+    const actual = await verify.getAssetPrice(asset);
+    // @ts-ignore - hre.ethers exists at runtime via hardhat-ethers plugin
+    if (!actual.eq(hre.ethers.BigNumber.from(newPrice))) {
+      throw new Error(
+        `Failed to set aggregator price. Expected ${newPrice}, got ${actual.toString()}`
+      );
+    }
     return;
   }
 
@@ -381,7 +461,7 @@ export async function setAggregatorPrice(oracle: any, asset: string, newPrice: s
   );
 
   // Deploy MockAggregator with the new price
-  const mockAggregator = await MockAggregatorFactory.deploy(newPrice);
+  const mockAggregator = await MockAggregatorFactory.deploy(newPrice, 8);
   await mockAggregator.deployed();
 
   // Update oracle to use the new MockAggregator

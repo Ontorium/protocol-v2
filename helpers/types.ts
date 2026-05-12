@@ -227,7 +227,7 @@ export interface iAssetCommon<T> {
   [key: string]: T;
 }
 export interface iAssetBase<T> {
-  AGT: T;
+  OXAU: T;
   WETH: T;
   DAI: T;
   TUSD: T;
@@ -277,7 +277,7 @@ export type iAssetsWithoutUSD<T> = Omit<iAssetBase<T>, 'USD'>;
 
 export type iAavePoolAssets<T> = Pick<
   iAssetsWithoutUSD<T>,
-  | 'AGT'
+  | 'OXAU'
   | 'DAI'
   | 'TUSD'
   | 'USDC'
@@ -303,7 +303,7 @@ export type iAavePoolAssets<T> = Pick<
 
 export type iLpPoolAssets<T> = Pick<
   iAssetsWithoutUSD<T>,
-  | 'AGT'
+  | 'OXAU'
   | 'DAI'
   | 'USDC'
   | 'USDT'
@@ -342,7 +342,7 @@ export type iAvalanchePoolAssets<T> = Pick<
   'WETH' | 'DAI' | 'USDT' | 'AAVE' | 'WBTC' | 'WAVAX' | 'USDC'
 >;
 
-export type iCustomPoolAssets<T> = Pick<iAssetsWithoutUSD<T>, 'AGT' | 'USDC' | 'USDT'>;
+export type iCustomPoolAssets<T> = Pick<iAssetsWithoutUSD<T>, 'OXAU' | 'USDC' | 'USDT'>;
 
 export type iMultiPoolsAssets<T> = iAssetCommon<T> | iAavePoolAssets<T>;
 
@@ -351,7 +351,7 @@ export type iAavePoolTokens<T> = Omit<iAavePoolAssets<T>, 'ETH'>;
 export type iAssetAggregatorBase<T> = iAssetsWithoutETH<T>;
 
 export enum TokenContractId {
-  AGT = 'AGT',
+  OXAU = 'OXAU',
   DAI = 'DAI',
   AAVE = 'AAVE',
   TUSD = 'TUSD',

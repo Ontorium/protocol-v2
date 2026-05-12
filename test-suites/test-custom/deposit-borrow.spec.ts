@@ -59,24 +59,24 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
 
   // Basic Borrow Tests
 
-  it('User borrows 100 AGT using USDC as collateral', async () => {
-    const { agt, pool, users } = testEnv;
+  it('User borrows 4 OXAU using USDC as collateral', async () => {
+    const { oxau, pool, users } = testEnv;
     const lender = users[0];
     const borrower  = users[1];
 
-    // Lender deposits AGT to provide liquidity
-    const agtDepositAmount = parseEther('1000');
-    await mintTokens(agt, lender.address, agtDepositAmount, lender.signer);
-    await agt.connect(lender.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    // Lender deposits OXAU to provide liquidity
+    const oxauDepositAmount = parseEther('1000');
+    await mintTokens(oxau, lender.address, oxauDepositAmount, lender.signer);
+    await oxau.connect(lender.signer).approve(pool.address, MAX_UINT_AMOUNT);
     await waitForTx(
-      await pool.connect(lender.signer).deposit(agt.address, agtDepositAmount, lender.address, 0)
+      await pool.connect(lender.signer).deposit(oxau.address, oxauDepositAmount, lender.address, 0)
     );
 
-    // Borrower borrows AGT using USDC collateral from previous test
-    const borrowAmount = parseEther('100');
+    // Borrower borrows OXAU using USDC collateral from previous test
+    const borrowAmount = parseEther('4');
     try {
       await pool.connect(borrower.signer).callStatic.borrow(
-        agt.address, borrowAmount, RateMode.Variable, 0, borrower.address
+        oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address
       );
       console.log("callStatic.borrow OK");
     } catch (e:any) {
@@ -89,27 +89,27 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
     await waitForTx(
       await pool
         .connect(borrower.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, borrower.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, borrower.address)
     );
 
-    const agtBalance = await agt.balanceOf(borrower.address);
-    expect(agtBalance).to.be.equal(borrowAmount, 'Should have borrowed AGT');
+    const oxauBalance = await oxau.balanceOf(borrower.address);
+    expect(oxauBalance).to.be.equal(borrowAmount, 'Should have borrowed OXAU');
 
     const userData = await pool.getUserAccountData(borrower.address);
     expect(userData.totalDebtETH).to.be.gt(0, 'Should have debt');
   });
 
   it('Reverts when trying to borrow 0 amount', async () => {
-    const { agt, pool, users } = testEnv;
+    const { oxau, pool, users } = testEnv;
     const borrower = users[1];
 
     await expect(
-      pool.connect(borrower.signer).borrow(agt.address, 0, RateMode.Variable, 0, borrower.address)
+      pool.connect(borrower.signer).borrow(oxau.address, 0, RateMode.Variable, 0, borrower.address)
     ).to.be.revertedWith(VL_INVALID_AMOUNT);
   });
 
   it('Reverts when trying to borrow without collateral', async () => {
-    const { agt, pool, users } = testEnv;
+    const { oxau, pool, users } = testEnv;
     const userWithoutCollateral = users[5];
 
     const borrowAmount = parseEther('10');
@@ -117,35 +117,35 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
     await expect(
       pool
         .connect(userWithoutCollateral.signer)
-        .borrow(agt.address, borrowAmount, RateMode.Variable, 0, userWithoutCollateral.address)
+        .borrow(oxau.address, borrowAmount, RateMode.Variable, 0, userWithoutCollateral.address)
     ).to.be.revertedWith(VL_COLLATERAL_BALANCE_IS_0);
   });
 
   // Repay Tests
 
   it('Reverts when trying to repay 0 amount', async () => {
-    const { agt, pool, users } = testEnv;
+    const { oxau, pool, users } = testEnv;
     const borrower = users[1];
 
     await expect(
-      pool.connect(borrower.signer).repay(agt.address, 0, RateMode.Variable, borrower.address)
+      pool.connect(borrower.signer).repay(oxau.address, 0, RateMode.Variable, borrower.address)
     ).to.be.revertedWith(VL_INVALID_AMOUNT);
   });
 
-  it('User repays half of AGT debt', async () => {
-    const { agt, pool, users, helpersContract } = testEnv;
+  it('User repays half of OXAU debt', async () => {
+    const { oxau, pool, users, helpersContract } = testEnv;
     const borrower = users[1];
 
-    const userDataBefore = await helpersContract.getUserReserveData(agt.address, borrower.address);
+    const userDataBefore = await helpersContract.getUserReserveData(oxau.address, borrower.address);
     const debtBefore = userDataBefore.currentVariableDebt;
 
-    const repayAmount = parseEther('50');
+    const repayAmount = parseEther('2');
 
-    await agt.connect(borrower.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    await oxau.connect(borrower.signer).approve(pool.address, MAX_UINT_AMOUNT);
     try {
        await pool
         .connect(borrower.signer)
-        .callStatic.repay(agt.address, repayAmount, RateMode.Variable, borrower.address)
+        .callStatic.repay(oxau.address, repayAmount, RateMode.Variable, borrower.address)
       console.log("callStatic.repay OK");
     } catch (e:any) {
       console.log("callStatic.repay REVERT:",
@@ -157,10 +157,10 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
     await waitForTx(
       await pool
         .connect(borrower.signer)
-        .repay(agt.address, repayAmount, RateMode.Variable, borrower.address)
+        .repay(oxau.address, repayAmount, RateMode.Variable, borrower.address)
     );
 
-    const userDataAfter = await helpersContract.getUserReserveData(agt.address, borrower.address);
+    const userDataAfter = await helpersContract.getUserReserveData(oxau.address, borrower.address);
     const debtAfter = userDataAfter.currentVariableDebt;
 
     // console.log('Debt before repay:', debtBefore.toString());
@@ -170,20 +170,20 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
   });
 
   it('User repays full debt using MAX_UINT_AMOUNT', async () => {
-    const { agt, pool, users, helpersContract } = testEnv;
+    const { oxau, pool, users, helpersContract } = testEnv;
     const borrower = users[1];
 
-    // Mint more AGT to cover interest
-    await mintTokens(agt, borrower.address, parseEther('100'), borrower.signer);
-    await agt.connect(borrower.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    // Mint more OXAU to cover interest
+    await mintTokens(oxau, borrower.address, parseEther('10'), borrower.signer);
+    await oxau.connect(borrower.signer).approve(pool.address, MAX_UINT_AMOUNT);
 
     await waitForTx(
       await pool
         .connect(borrower.signer)
-        .repay(agt.address, MAX_UINT_AMOUNT, RateMode.Variable, borrower.address)
+        .repay(oxau.address, MAX_UINT_AMOUNT, RateMode.Variable, borrower.address)
     );
 
-    const userDataAfter = await helpersContract.getUserReserveData(agt.address, borrower.address);
+    const userDataAfter = await helpersContract.getUserReserveData(oxau.address, borrower.address);
 
     expect(userDataAfter.currentVariableDebt).to.be.eq(0, 'Debt should be fully repaid');
   });
@@ -255,7 +255,7 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
   // Health Factor Tests
 
   it('Reverts when borrow would make health factor too low', async () => {
-    const { agt, usdc, pool, users } = testEnv;
+    const { oxau, usdc, pool, users } = testEnv;
     const user = users[2];
 
     // Small deposit
@@ -283,13 +283,13 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
     await expect(
       pool
         .connect(user.signer)
-        .borrow(agt.address, excessiveBorrowAmount, RateMode.Variable, 0, user.address)
+        .borrow(oxau.address, excessiveBorrowAmount, RateMode.Variable, 0, user.address)
     ).to.be.revertedWith(VL_COLLATERAL_CANNOT_COVER_NEW_BORROW);
   });
 
   // Multiple Asset Tests
   it('User can have multiple collateral types', async () => {
-    const { agt, usdc, pool, users } = testEnv;
+    const { oxau, usdc, pool, users } = testEnv;
     const user = users[3];
 
     // Deposit USDC
@@ -311,13 +311,13 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
       await pool.connect(user.signer).deposit(usdc.address, usdcAmount, user.address, 0)
     );
 
-    // Deposit AGT
+    // Deposit OXAU
     const agtAmount = parseEther('100');
-    await mintTokens(agt, user.address, agtAmount, user.signer);
-    await agt.connect(user.signer).approve(pool.address, MAX_UINT_AMOUNT);
+    await mintTokens(oxau, user.address, agtAmount, user.signer);
+    await oxau.connect(user.signer).approve(pool.address, MAX_UINT_AMOUNT);
 
     try {
-      await pool.connect(user.signer).callStatic.deposit(agt.address, agtAmount, user.address, 0)
+      await pool.connect(user.signer).callStatic.deposit(oxau.address, agtAmount, user.address, 0)
       console.log("callStatic.deposit OK");
     } catch (e:any) {
       console.log("callStatic.deposit REVERT:",
@@ -327,7 +327,7 @@ makeSuite('Custom Market - Deposit & Borrow', (testEnv: TestEnv) => {
     }
 
     await waitForTx(
-      await pool.connect(user.signer).deposit(agt.address, agtAmount, user.address, 0)
+      await pool.connect(user.signer).deposit(oxau.address, agtAmount, user.address, 0)
     );
 
     const userData = await pool.getUserAccountData(user.address);

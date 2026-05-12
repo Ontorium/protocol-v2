@@ -148,6 +148,8 @@ interface ILendingPool {
 
   event LiquidationWhitelistUpdated(address indexed liquidator, bool allowed);
 
+  event PriceOracleSentinelUpdated(address indexed sentinel);
+
   /**
    * @dev Emitted when the state of a reserve is updated. NOTE: This event is actually declared
    * in the ReserveLogic library and emitted in the updateInterestRates() function. Since the function is internal,
@@ -402,6 +404,10 @@ interface ILendingPool {
   function getReservesList() external view returns (address[] memory);
 
   function getAddressesProvider() external view returns (ILendingPoolAddressesProvider);
+
+  function getPriceOracleSentinel() external view returns (address);
+
+  function setPriceOracleSentinel(address sentinel) external;
 
   function setPause(bool val) external;
 
